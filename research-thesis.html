@@ -51,25 +51,36 @@ nav { position: fixed; inset: 0 0 auto 0; z-index: 1000; display: flex; justify-
 .hypothesis-text { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem; line-height: 1.5; color: var(--ink); }
 .var-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 32px; }
 .var-group { padding: 24px; border: 1px solid rgba(26,26,255,.1); border-radius: 2px; }
-.var-group-label { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
+.var-group-label { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--blue); margin-bottom: 14px; }
 .var-item { font-size: .85rem; line-height: 1.6; color: #3a3a3a; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,.05); }
 .var-item:last-child { border-bottom: none; }
-.reg-table { width: 100%; border-collapse: collapse; margin-top: 32px; font-size: .88rem; }
-.reg-table th { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--mid); padding: 10px 16px; text-align: left; border-bottom: 2px solid rgba(26,26,255,.15); }
-.reg-table td { padding: 11px 16px; border-bottom: 1px solid rgba(0,0,0,.06); color: #2a2a2a; }
+.reg-table { width: 100%; border-collapse: collapse; margin-top: 32px; font-size: .85rem; }
+.reg-table th { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--mid); padding: 10px 14px; text-align: left; border-bottom: 2px solid rgba(26,26,255,.15); }
+.reg-table td { padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,.05); color: #2a2a2a; }
 .reg-table tr:last-child td { border-bottom: none; }
 .reg-table .sig { color: var(--blue); font-family: 'Syne', sans-serif; font-weight: 700; }
 .reg-table .row-head { font-weight: 500; color: var(--ink); }
-.reg-table .subrow { color: var(--mid); font-size: .82rem; }
-.reg-table .section-break td { padding-top: 20px; }
-.reg-table .section-break .row-head { font-size: .65rem; letter-spacing: .15em; text-transform: uppercase; color: var(--blue); }
-.reg-note { font-size: .75rem; color: var(--mid); margin-top: 12px; }
+.reg-table .subrow td { color: var(--mid); font-size: .8rem; }
+.reg-table .section-head td { padding-top: 18px; }
+.reg-table .section-head .row-head { font-size: .62rem; letter-spacing: .15em; text-transform: uppercase; color: var(--blue); font-weight: 700; }
+.reg-note { font-size: .75rem; color: var(--mid); margin-top: 12px; line-height: 1.6; }
 .finding-list { margin-top: 32px; display: flex; flex-direction: column; gap: 24px; }
 .finding-item { display: grid; grid-template-columns: 48px 1fr; gap: 20px; align-items: start; }
 .finding-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; color: rgba(26,26,255,.25); line-height: 1; }
 .finding-text { font-size: .97rem; line-height: 1.75; color: #2a2a2a; padding-top: 2px; }
 .finding-text strong { color: var(--ink); font-weight: 500; }
-.conclusion-block { background: var(--blue); color: white; padding: 72px 56px; margin-top: 0; }
+
+/* PAPER CTA */
+.paper-cta { margin-top: 64px; padding: 40px 48px; border: 1.5px solid rgba(26,26,255,.2); display: flex; align-items: center; justify-content: space-between; gap: 32px; }
+.paper-cta-text {}
+.paper-cta-label { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--blue); margin-bottom: 10px; }
+.paper-cta-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--ink); }
+.paper-cta-sub { font-size: .88rem; color: var(--mid); margin-top: 6px; line-height: 1.5; }
+.paper-cta-btn { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--white); background: var(--blue); padding: 14px 28px; text-decoration: none; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 8px; transition: opacity .25s; }
+.paper-cta-btn:hover { opacity: .8; }
+.paper-cta-btn svg { width: 14px; height: 14px; }
+
+.conclusion-block { background: var(--blue); color: white; padding: 72px 56px; }
 .conclusion-block .section-label { color: rgba(255,255,255,.5); }
 .conclusion-block .section-label::before { background: rgba(255,255,255,.4); }
 .conclusion-block .section-title { color: white; font-size: clamp(1.2rem, 2vw, 1.6rem); }
@@ -84,8 +95,9 @@ footer { border-top: 1px solid rgba(26,26,255,.12); padding: 26px 56px; display:
   .content { padding: 0 24px; }
   .two-col { grid-template-columns: 1fr; gap: 32px; }
   .var-grid { grid-template-columns: 1fr; }
+  .paper-cta { flex-direction: column; padding: 28px 24px; }
   .conclusion-block { padding: 48px 24px; }
-  footer { padding: 22px 24px; flex-direction: column; gap: 12px; text-align: center; }
+  footer { padding: 22px 24px; flex-direction: column; gap: 12px; }
 }
 </style>
 </head>
@@ -118,8 +130,8 @@ footer { border-top: 1px solid rgba(26,26,255,.12); padding: 26px 56px; display:
       <span class="hero-meta-value">Ordered Logistic Regression</span>
     </div>
     <div class="hero-meta-item">
-      <span class="hero-meta-label">Age Range</span>
-      <span class="hero-meta-value">17 – 28</span>
+      <span class="hero-meta-label">Advisor</span>
+      <span class="hero-meta-value">Dr. Edward Telles</span>
     </div>
   </div>
 </section>
@@ -130,23 +142,23 @@ footer { border-top: 1px solid rgba(26,26,255,.12); padding: 26px 56px; display:
     <div class="section-label">Background</div>
     <div class="two-col">
       <div>
-        <h2 class="section-title">The Digital Shift in Social Life</h2>
-        <p class="prose">Global internet penetration exceeded 50% for the first time in 2020, with the U.S. rate sitting at approximately 93%. Since 2011, a majority of Americans have reported using social media — and people under 30 adopted these platforms earlier and at higher rates than any other age group, a gap that persists today.</p>
-        <p class="prose" style="margin-top:18px">As digital communication has reshaped how people form and maintain relationships, a fundamental question emerges: have these shifts changed how young adults experience belonging and community?</p>
+        <h2 class="section-title">Loneliness, Community, and the Digital Turn</h2>
+        <p class="prose">The U.S. Surgeon General issued an advisory on an "epidemic of loneliness and isolation" in 2023, describing rising levels of social isolation and their implications for public health. Among the contributing factors discussed was the role of social media — a debate that has produced genuinely mixed empirical results. Some studies find that more time on social media is linked to higher perceived isolation; others find that image-based platforms decrease loneliness by raising the sense of social presence.</p>
+        <p class="prose" style="margin-top:18px">This project enters that debate with a specific focus on <em>community identification</em> rather than loneliness — a measure that emphasizes an individual's sense of place within formalized social environments, rather than individual subjective experience. The question is whether general digital communication technology use predicts how often young adults feel they belong to a community.</p>
       </div>
       <div>
         <div class="stat-row" style="margin-top:0">
           <div class="stat-card">
-            <div class="stat-num">93%</div>
-            <div class="stat-desc">U.S. internet penetration rate at time of study</div>
+            <div class="stat-num">92%</div>
+            <div class="stat-desc">U.S. internet penetration rate as of 2021</div>
           </div>
           <div class="stat-card">
-            <div class="stat-num">2011</div>
-            <div class="stat-desc">Year a majority of Americans first reported social media use</div>
+            <div class="stat-num">27.9%</div>
+            <div class="stat-desc">Largest single group — respondents reporting <em>never</em> feeling community belonging</div>
           </div>
           <div class="stat-card">
-            <div class="stat-num">18–29</div>
-            <div class="stat-desc">Age group with highest and earliest social media adoption</div>
+            <div class="stat-num">88%</div>
+            <div class="stat-desc">Share of respondents who text daily or a few times a week</div>
           </div>
         </div>
       </div>
@@ -155,159 +167,139 @@ footer { border-top: 1px solid rgba(26,26,255,.12); padding: 26px 56px; display:
 
   <div class="section">
     <div class="section-label">Research Questions &amp; Hypotheses</div>
-    <h2 class="section-title">Two Core Questions</h2>
-    <p class="prose" style="margin-bottom:28px">This research addressed two interrelated questions about the relationship between technology use and community identification among young adults in the United States.</p>
+    <h2 class="section-title">Two Competing Frameworks</h2>
+    <p class="prose" style="margin-bottom:24px">The project is situated within a debate between two well-documented hypotheses of internet use effects. The <strong>"rich get richer"</strong> hypothesis holds that people with greater social aptitude benefit more from technology use, while more introverted people see worse outcomes. The <strong>social compensation</strong> hypothesis holds the opposite — that socially anxious individuals prefer digital communication and see net benefits from it.</p>
 
-    <div class="hypothesis">
-      <div class="hypothesis-label">Question 1</div>
-      <div class="hypothesis-text">How strongly does the use of communication technology predict an individual's sense of community?</div>
-    </div>
     <div class="hypothesis">
       <div class="hypothesis-label">Hypothesis 1</div>
-      <div class="hypothesis-text">Technology use frequency is positively associated with reported frequency of feeling belonging within a community.</div>
+      <div class="hypothesis-text">Increased frequency of digital communication technology use will be positively associated with more frequent reported sense of community belonging, net of all controls.</div>
     </div>
-
-    <div class="hypothesis" style="margin-top:32px">
-      <div class="hypothesis-label">Question 2</div>
-      <div class="hypothesis-text">How are demographic disparities in community identification affected by technology use?</div>
-    </div>
-    <div class="hypothesis">
+    <div class="hypothesis" style="margin-top:16px">
       <div class="hypothesis-label">Hypothesis 2</div>
-      <div class="hypothesis-text">The disparities in frequency of reported sense of belonging between white and non-white respondents will decrease with greater technology use.</div>
+      <div class="hypothesis-text">Technology use will have a positive interaction effect with race and gender, helping people of more marginalized identities reduce existing inequalities in access to community — consistent with the social compensation hypothesis.</div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-label">Data</div>
-    <h2 class="section-title">Panel Study of Income Dynamics — Transition to Adulthood Supplement</h2>
+    <div class="section-label">Data &amp; Measures</div>
+    <h2 class="section-title">PSID Transition to Adulthood Supplement, 2019</h2>
     <div class="two-col">
       <div>
-        <p class="prose">The analysis drew on the 2019 wave of the Transition to Adulthood Supplement (TAS) of the Panel Study of Income Dynamics (PSID) — the longest-running longitudinal household study in the world, tracking families since 1968.</p>
-        <p class="prose" style="margin-top:18px">The TAS was originally comprised of eligible young-adult children of PSID households drawn from the Child Development Supplement (CDS), beginning in 2005. It was redesigned in 2017 as a biennial survey that expanded to include non-CDS children of PSID households, creating a richer cross-sectional sample of young adults across the country.</p>
-        <p class="prose" style="margin-top:18px">The 2019 wave included <strong>2,595 respondents</strong> between the ages of 17 and 28. The sample is predominantly white and Black — Black respondents are overrepresented relative to the general population, while other racial minorities are severely underrepresented, a limitation acknowledged in the analysis.</p>
+        <p class="prose">The Panel Study of Income Dynamics (PSID) is the longest-running longitudinal household study in the world, tracking U.S. families since 1968. Its Transition to Adulthood Supplement (TAS) began in 2005 and was redesigned in 2017 to expand eligibility to all children of PSID households, adding technology use questions of direct interest for this analysis.</p>
+        <p class="prose" style="margin-top:18px">The 2019 TAS wave (TAS19) includes 2,595 respondents aged 17–28. Black respondents are oversampled at 42.8% of the sample; white and Hispanic respondents are undersampled at 42.35% and 11.69% respectively. PSID 2019 cross-sectional weights were applied throughout.</p>
+        <p class="prose" style="margin-top:18px">49.25% of respondents reported earning less than $10,000 in the prior year, consistent with the young-adult transition period the survey is designed to capture.</p>
       </div>
       <div>
-        <div class="stat-row" style="margin-top:0; grid-template-columns: 1fr 1fr">
-          <div class="stat-card">
-            <div class="stat-num">2,595</div>
-            <div class="stat-desc">Total respondents in 2019 TAS wave</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-num">17–28</div>
-            <div class="stat-desc">Age range of respondents</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-num">1968</div>
-            <div class="stat-desc">Year PSID data collection began</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-num">2019</div>
-            <div class="stat-desc">TAS wave used for this analysis</div>
-          </div>
+        <div class="stat-row" style="margin-top:0; grid-template-columns:1fr 1fr">
+          <div class="stat-card"><div class="stat-num">2,595</div><div class="stat-desc">Respondents in 2019 TAS</div></div>
+          <div class="stat-card"><div class="stat-num">17–28</div><div class="stat-desc">Age range of respondents</div></div>
+          <div class="stat-card"><div class="stat-num">42.8%</div><div class="stat-desc">Share of sample — Black respondents (oversampled)</div></div>
+          <div class="stat-card"><div class="stat-num">1968</div><div class="stat-desc">Year PSID began</div></div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="section">
-    <div class="section-label">Measures</div>
-    <h2 class="section-title">Key Variables</h2>
-    <p class="prose">Five technology use variables captured self-reported frequency of digital activity in the past 30 days, each on a five-point ordinal scale from "Never" to "Every day," averaged into a composite index. Outcome and control variables were drawn from validated scales embedded in the TAS.</p>
-    <div class="var-grid">
+    <div class="var-grid" style="margin-top:48px">
       <div class="var-group">
-        <div class="var-group-label">Technology Use (Independent)</div>
+        <div class="var-group-label">Independent — Technology Use</div>
         <div class="var-item">Gaming (electronic devices)</div>
         <div class="var-item">Email (sent or received)</div>
         <div class="var-item">Texting (sent or received)</div>
         <div class="var-item">Social media — friends/family</div>
         <div class="var-item">Following topics/people online</div>
+        <div class="var-item" style="color:var(--blue); font-size:.78rem; margin-top:8px">→ Averaged into composite index (0–4)</div>
       </div>
       <div class="var-group">
-        <div class="var-group-label">Outcome (Dependent)</div>
-        <div class="var-item">Frequency of feeling belonging to a community (social group, school, or neighborhood)</div>
-        <div style="height:14px"></div>
-        <div class="var-group-label">Well-Being Controls</div>
-        <div class="var-item">Psychological well-being (6 items)</div>
-        <div class="var-item">Emotional well-being (3 items)</div>
-        <div class="var-item">Rosenberg Self-Esteem Scale</div>
+        <div class="var-group-label">Dependent &amp; Psychological Controls</div>
+        <div class="var-item"><strong>Outcome:</strong> Community identification frequency (0–5)</div>
+        <div class="var-item">Psychological well-being (6-item subscale)</div>
+        <div class="var-item">Emotional well-being (3-item subscale)</div>
+        <div class="var-item">Rosenberg Self-Esteem Scale (10 items, 0–30)</div>
       </div>
       <div class="var-group">
-        <div class="var-group-label">Demographic Controls</div>
+        <div class="var-group-label">Demographic &amp; Social Participation</div>
         <div class="var-item">Race/ethnicity (base: White)</div>
         <div class="var-item">Gender (base: Male)</div>
         <div class="var-item">Age &amp; Age²</div>
-        <div class="var-item">Wage/Income (in $1,000s)</div>
-        <div class="var-item">Frequency of religious attendance</div>
-        <div class="var-item">Higher education attendance</div>
+        <div class="var-item">Earnings in previous year</div>
+        <div class="var-item">Arts, sports, clubs, social action, volunteering</div>
+        <div class="var-item">Frequency of religious attendance (0–5)</div>
+        <div class="var-item">Higher education enrollment</div>
+        <div class="var-item">Friends' higher ed. enrollment (0–4)</div>
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-label">Methods &amp; Findings</div>
-    <h2 class="section-title">Ordered Logistic Regression — Three Model Build</h2>
-    <p class="prose" style="margin-bottom:32px">Three sequential models were estimated with community identification frequency as the dependent variable. Model 1 included only technology use frequency. Model 2 added psychological, emotional, and self-esteem well-being measures. Model 3 introduced full demographic and socioeconomic controls. Results are presented as odds ratios.</p>
+    <div class="section-label">Results</div>
+    <h2 class="section-title">Ordered Logistic Regression — Four Model Build</h2>
+    <p class="prose" style="margin-bottom:32px">Four sequential models were estimated. Model 1 tested technology use alone. Model 2 added well-being controls. Model 3 added demographic and socioeconomic variables. Model 4 introduced the full social participation measures. All results are odds ratios; standard errors in parentheses.</p>
 
     <table class="reg-table">
       <thead>
         <tr>
-          <th>Variable</th>
+          <th style="width:36%">Variable</th>
           <th>Model 1</th>
           <th>Model 2</th>
           <th>Model 3</th>
+          <th>Model 4</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td class="row-head">Technology Use Frequency</td>
-          <td class="sig">1.470***</td>
-          <td class="sig">1.316***</td>
-          <td class="sig">1.310***</td>
+          <td class="sig">1.650***</td>
+          <td class="sig">1.518***</td>
+          <td class="sig">1.444***</td>
+          <td class="sig">1.242***</td>
         </tr>
         <tr>
           <td class="row-head">Psychological Well-Being</td>
-          <td>—</td>
-          <td class="sig">1.431***</td>
-          <td class="sig">1.407***</td>
+          <td>—</td><td class="sig">1.647***</td><td class="sig">1.657***</td><td class="sig">1.649***</td>
         </tr>
         <tr>
           <td class="row-head">Emotional Well-Being</td>
-          <td>—</td>
-          <td class="sig">1.396***</td>
-          <td class="sig">1.329***</td>
+          <td>—</td><td class="sig">1.217***</td><td class="sig">1.227***</td><td class="sig">1.300***</td>
         </tr>
         <tr>
           <td class="row-head">Rosenberg Self-Esteem Scale</td>
-          <td>—</td>
-          <td class="sig">1.039***</td>
-          <td class="sig">1.065***</td>
+          <td>—</td><td class="sig">1.051***</td><td class="sig">1.071***</td><td class="sig">1.062***</td>
         </tr>
-        <tr class="section-break">
-          <td class="row-head" colspan="4">Race (Base: White)</td>
-        </tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Hispanic, Latino, or Spanish</td><td>—</td><td>—</td><td class="sig">0.485***</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Black or African American</td><td>—</td><td>—</td><td class="sig">0.495***</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Asian</td><td>—</td><td>—</td><td>1.084</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;American Indian or Alaskan Native</td><td>—</td><td>—</td><td>0.413*</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Middle Eastern or North African</td><td>—</td><td>—</td><td>0.363</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Native Hawaiian or Other Pacific Islander</td><td>—</td><td>—</td><td>3.299</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Some other race, ethnicity, or origin</td><td>—</td><td>—</td><td class="sig">0.174**</td></tr>
-        <tr class="section-break">
-          <td class="row-head" colspan="4">Gender (Base: Male)</td>
-        </tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Female</td><td>—</td><td>—</td><td class="sig">0.846**</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Other</td><td>—</td><td>—</td><td>1.506</td></tr>
-        <tr class="section-break">
-          <td class="row-head" colspan="4">Socioeconomic Controls</td>
-        </tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Frequency of Religious Attendance</td><td>—</td><td>—</td><td class="sig">1.094***</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Wage / Income (in $1,000s)</td><td>—</td><td>—</td><td>0.997</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Age</td><td>—</td><td>—</td><td class="sig">0.662**</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Age²</td><td>—</td><td>—</td><td class="sig">1.008**</td></tr>
-        <tr><td class="subrow">&nbsp;&nbsp;Higher Education Attendance</td><td>—</td><td>—</td><td class="sig">1.631***</td></tr>
+
+        <tr class="section-head"><td class="row-head" colspan="5">Race (Ref: White)</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Hispanic, Latino, or Spanish</td><td>—</td><td>—</td><td class="sig">0.358***</td><td class="sig">0.396***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Black or African American</td><td>—</td><td>—</td><td class="sig">0.478***</td><td class="sig">0.557***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Asian</td><td>—</td><td>—</td><td>1.012</td><td>0.831</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;American Indian or Alaskan Native</td><td>—</td><td>—</td><td>0.811</td><td>1.373</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Middle Eastern or North African</td><td>—</td><td>—</td><td>0.182*</td><td>0.371</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Native Hawaiian / Pacific Islander</td><td>—</td><td>—</td><td class="sig">3.383***</td><td class="sig">3.568***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Some other race, ethnicity, or origin</td><td>—</td><td>—</td><td>1.441</td><td>1.079</td></tr>
+
+        <tr class="section-head"><td class="row-head" colspan="5">Gender (Ref: Male)</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Female</td><td>—</td><td>—</td><td>1.048</td><td>0.967</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Other</td><td>—</td><td>—</td><td>2.045</td><td>2.673*</td></tr>
+
+        <tr class="section-head"><td class="row-head" colspan="5">Socioeconomic</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Earnings in previous year</td><td>—</td><td>—</td><td>0.998</td><td>0.998</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Age</td><td>—</td><td>—</td><td>0.588**</td><td>0.681</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Age²</td><td>—</td><td>—</td><td>1.011**</td><td>1.009</td></tr>
+
+        <tr class="section-head"><td class="row-head" colspan="5">Social Participation</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Arts involvement</td><td>—</td><td>—</td><td>—</td><td class="sig">1.535***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Organized sports</td><td>—</td><td>—</td><td>—</td><td class="sig">1.512***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;School clubs</td><td>—</td><td>—</td><td>—</td><td class="sig">1.515***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Social action groups</td><td>—</td><td>—</td><td>—</td><td>1.414*</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Volunteering</td><td>—</td><td>—</td><td>—</td><td class="sig">1.426***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Religious attendance frequency</td><td>—</td><td>—</td><td>—</td><td class="sig">1.139***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Higher education enrollment</td><td>—</td><td>—</td><td>—</td><td class="sig">2.157***</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Friends' higher ed. enrollment</td><td>—</td><td>—</td><td>—</td><td class="sig">1.140***</td></tr>
+
+        <tr class="section-head"><td class="row-head" colspan="5">Model Fit</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;N</td><td>2,569</td><td>2,494</td><td>2,382</td><td>2,240</td></tr>
+        <tr class="subrow"><td>&nbsp;&nbsp;Pseudo R²</td><td>0.0101</td><td>0.0734</td><td>0.0931</td><td>0.1318</td></tr>
       </tbody>
     </table>
-    <p class="reg-note">*** p&lt;.01 &nbsp;&nbsp;** p&lt;.05 &nbsp;&nbsp;* p&lt;.1 &nbsp;&nbsp;· Results presented as odds ratios.</p>
+    <p class="reg-note">*** p&lt;.01 &nbsp;&nbsp;** p&lt;.05 &nbsp;&nbsp;* p&lt;.1 &nbsp;&nbsp;· Results presented as odds ratios · Standard errors omitted for readability — see full paper for complete table</p>
   </div>
 
   <div class="section">
@@ -316,24 +308,37 @@ footer { border-top: 1px solid rgba(26,26,255,.12); padding: 26px 56px; display:
     <div class="finding-list">
       <div class="finding-item">
         <div class="finding-num">01</div>
-        <div class="finding-text"><strong>Technology use is a significant positive predictor of community identification.</strong> In Model 1, the odds ratio of 1.470 (p&lt;.001) indicates that higher technology use frequency is strongly associated with more frequent feelings of community belonging — confirming Hypothesis 1. This effect persists after controlling for well-being and demographics (OR 1.310 in Model 3).</div>
+        <div class="finding-text"><strong>Technology use is a consistent, significant positive predictor of community identification across all four models.</strong> Beginning at OR 1.650 in Model 1 and settling at OR 1.242 after full controls, the effect is robust — suggesting that higher technology use frequency increases the likelihood of more frequent community belonging by as much as 27% net of all covariates. The only technology use sub-type independently significant was <em>following topics/people online</em> (OR 1.173, p&lt;.01), lending some credence to the social compensation hypothesis.</div>
       </div>
       <div class="finding-item">
         <div class="finding-num">02</div>
-        <div class="finding-text"><strong>White respondents benefit more from technology use than Hispanic and Black respondents.</strong> Predictive probability plots show that daily technology users who are white converge toward higher community identification, while Hispanic and Black daily users see smaller gains. Hypothesis 2 was not supported: technology use does not reduce racial disparities in community belonging, and may in fact widen them.</div>
+        <div class="finding-text"><strong>Race is among the strongest predictors in the model.</strong> Hispanic respondents are 60% less likely and Black respondents 44% less likely to report more frequent community identification than their white counterparts (Models 3–4). The striking exception is Native Hawaiian and Pacific Islander respondents, who show a 357% greater likelihood — a finding the paper attributes to the more rigidly bounded nature of certain racial communities and the role of shared history and culture in community formation.</div>
       </div>
       <div class="finding-item">
         <div class="finding-num">03</div>
-        <div class="finding-text"><strong>Gender disparities narrow with increased technology use.</strong> Although females report lower community identification than males overall (OR 0.846, p&lt;.05), the gap between male and female respondents closes substantially as technology use increases. At daily use levels, predictive probabilities for men and women nearly converge.</div>
+        <div class="finding-text"><strong>Higher education enrollment is the single strongest social participation predictor.</strong> Respondents who have ever attended college are 215% more likely to report increased community identification frequency — a larger effect than any other variable in the full model, including religious attendance (which at most confers a 56% increase).</div>
       </div>
       <div class="finding-item">
         <div class="finding-num">04</div>
-        <div class="finding-text"><strong>Educational disparities are amplified by technology use.</strong> Respondents with some college experience benefit considerably more from technology use (OR 1.631, p&lt;.001) than those without. The gap between college and non-college respondents grows wider at higher use frequencies, suggesting that educational context shapes how digital tools translate into community connection.</div>
+        <div class="finding-text"><strong>Age effects disappear once social participation is controlled.</strong> Age and age² are both significant in Model 3 but become non-significant in Model 4. This suggests the apparent age decline in community identification is explained by decreasing access to institutionally-backed community structures (sports teams, clubs, schools) as young adults age out of them — not by age itself.</div>
       </div>
       <div class="finding-item">
         <div class="finding-num">05</div>
-        <div class="finding-text"><strong>Psychological and emotional well-being are strong independent predictors.</strong> Both psychological well-being (OR 1.407) and emotional well-being (OR 1.329) remain highly significant after full demographic adjustment, suggesting that mental health and community identification are closely intertwined among young adults.</div>
+        <div class="finding-text"><strong>No significant interaction terms were found for technology use with race or gender.</strong> Hypothesis 2 was not supported. Technology use does not appear to ameliorate demographic inequalities in community identification. The social compensation hypothesis cannot be confirmed — but neither can the "rich get richer" alternative — leaving the mechanism of technology's positive effect an open question.</div>
       </div>
+    </div>
+
+    <!-- PAPER CTA -->
+    <div class="paper-cta">
+      <div class="paper-cta-text">
+        <div class="paper-cta-label">Full Paper</div>
+        <div class="paper-cta-title">Read the complete thesis</div>
+        <div class="paper-cta-sub">Introduction, literature review, full methodology, regression tables, and bibliography — 19 pages.</div>
+      </div>
+      <a href="research-thesis-paper.html" class="paper-cta-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        View Paper
+      </a>
     </div>
   </div>
 
@@ -341,10 +346,10 @@ footer { border-top: 1px solid rgba(26,26,255,.12); padding: 26px 56px; display:
 
 <div class="conclusion-block">
   <div class="section-label">Conclusions</div>
-  <h2 class="section-title">Digital Technology and Community — A Complex Relationship</h2>
-  <p class="prose">Digital communication technology has a measurable positive effect on young adults' sense of community belonging. However, the benefits are not evenly distributed. Young people already face structural inequalities in access to community — shaped by race, education, gender, and economic position — and technology use can amplify rather than reduce these divides.</p>
-  <p class="prose">White respondents and those with higher education see the greatest gains from frequent technology engagement. For Hispanic and Black respondents, the relationship is more muted, pointing to the possibility that the social infrastructure through which technology operates — the networks, institutions, and cultural contexts it connects people to — remains unequal.</p>
-  <p class="prose">These findings suggest that expanding digital access alone is insufficient to address disparities in community identification. The quality and character of that access — and the social conditions into which it is embedded — matter as much as frequency of use.</p>
+  <h2 class="section-title">Structural Barriers, Not Individual Habits</h2>
+  <p class="prose">Digital communication technology has a measurable positive effect on young adults' sense of community belonging. But the data tells a more structural story. The strongest predictors of community identification are institutional: college enrollment, organized sports and clubs, religious participation. Technology use matters — but it operates in the context of access to these institutions, which remain deeply unequal.</p>
+  <p class="prose">The racial disparities in community identification — particularly the significant gaps for Hispanic and Black respondents — point toward barriers to public space, housing, and institutional access rather than anything technology can straightforwardly correct. The widening gap between college-educated and non-college-educated young adults is simultaneously a gap in community access, and therefore a gap in health outcomes.</p>
+  <p class="prose">The paper suggests that what may be occurring digitally is a reconstitution of community along new infrastructural lines — paralleling the urbanization process, wherein denser networks of informal ties emerge even as traditional ones weaken. Whether digital community can substitute meaningfully for institutional belonging remains an open and important question.</p>
 </div>
 
 <footer>
