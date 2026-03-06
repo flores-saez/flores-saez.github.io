@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alonso Flores-Sáez — Social Researcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+a, button { cursor: none !important; }
+
+:root {
+  --bg: #f5f4f0;
+  --ink: #0a0a0a;
+  --mid: #6b6b6b;
+  --light: #d8d6d0;
+  --white: #ffffff;
+  --warm: #eeece6;
+  --blue: #1a1aff;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html { scroll-behavior: smooth; background: #ffffff; }
+body {
+  background: transparent;
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  cursor: none !important;
+}
+
+/* CURSOR */
+#cur {
+  position: fixed; z-index: 9999;
+  width: 10px; height: 10px;
+  background: var(--blue);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: width .4s var(--ease), height .4s var(--ease);
+  will-change: left, top;
+}
+#cur.big {
+  width: 60px; height: 60px;
+  opacity: 0.35;
+  background: var(--blue);
+  mix-blend-mode: normal;
+}
+
+
+/* NAV */
+nav {
+  position: fixed; inset: 0 0 auto 0; z-index: 1000;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 28px 56px;
+}
+.nav-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: .88rem;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--blue); text-decoration: none;
+}
+.nav-links { display: flex; gap: 40px; list-style: none; }
+.nav-links a {
+  font-size: .75rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--mid); text-decoration: none;
+  position: relative; overflow: hidden; display: inline-block; line-height: 1.2;
+}
+.nav-links a .t1, .nav-links a .t2 { display: block; transition: transform .4s var(--ease); }
+.nav-links a .t2 {
+  position: absolute; top: 0; left: 0;
+  color: var(--blue); transform: translateY(110%);
+}
+.nav-links a:hover .t1 { transform: translateY(-110%); }
+.nav-links a:hover .t2 { transform: translateY(0); }
+
+/* HERO */
+#hero {
+  min-height: 100vh;
+  background: transparent;
+  padding: 0 56px 52px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg-text {
+  position: absolute; right: -1vw; bottom: -5vw;
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 30vw; line-height: 1; color: transparent;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(26,26,255,0.15);
+  pointer-events: none; user-select: none;
+  letter-spacing: -.05em; will-change: transform;
+}
+.hero-main {
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding-bottom: 52px;
+}
+.hero-eyebrow { overflow: hidden; margin-bottom: 24px; }
+.hero-eyebrow span {
+  display: block; font-size: .78rem; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--mid);
+  animation: slideUp .9s .15s var(--ease) both;
+}
+.hero-name {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(5rem, 12.5vw, 13.5rem);
+  line-height: .9; letter-spacing: -.03em; color: var(--ink);
+}
+.hero-name .ln { display: block; overflow: hidden; }
+.hero-name .ln span { display: block; animation: slideUp 1.1s var(--ease) both; }
+.hero-name .ln:nth-child(1) span { animation-delay: .08s; }
+.hero-name .ln:nth-child(2) span { animation-delay: .2s; }
+
+@keyframes slideUp {
+  from { transform: translateY(108%); }
+  to   { transform: translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.hero-bottom {
+  display: grid; grid-template-columns: 200px 1fr; gap: 56px;
+  padding-top: 32px;
+  animation: fadeUp .9s 1s var(--ease) both;
+}
+.hero-socials {
+  display: flex; flex-direction: column; justify-content: center; gap: 18px;
+}
+.soc-link {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--mid); text-decoration: none;
+  font-size: .75rem; letter-spacing: .1em; text-transform: uppercase;
+  transition: color .25s var(--ease), transform .25s var(--ease);
+}
+.soc-link:hover { color: var(--blue); transform: translateX(4px); cursor: none; }
+.soc-link svg { flex-shrink: 0; }
+.hero-desc {
+  font-size: 1.05rem; line-height: 1.75; color: var(--mid);
+  max-width: 520px; align-self: center;
+}
+
+/* MARQUEE */
+.marquee-strip {
+  background: transparent; padding: 16px 0;
+  overflow: hidden; white-space: nowrap;
+  border-top: 1px solid rgba(26,26,255,.15);
+  border-bottom: 1px solid rgba(26,26,255,.15);
+}
+.marquee-inner {
+  display: inline-flex;
+  animation: ticker 22s linear infinite;
+}
+.marquee-inner span {
+  font-family: 'Syne', sans-serif; font-weight: 600;
+  font-size: .72rem; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--blue); padding: 0 36px;
+}
+.marquee-inner em { font-style: normal; color: rgba(26,26,255,.25); }
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* SHARED SECTION */
+section { padding: 136px 56px; }
+.s-label {
+  font-size: .7rem; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--mid); display: flex; align-items: center; gap: 14px;
+  margin-bottom: 72px;
+}
+.s-label::before { content:''; width: 28px; height: 1px; background: var(--mid); flex-shrink: 0; }
+.s-title {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(2.4rem, 4.5vw, 4.8rem);
+  line-height: 1.0; letter-spacing: -.03em;
+}
+
+/* ABOUT */
+#about {
+  background: transparent;
+  display: grid; grid-template-columns: 420px 1fr;
+  gap: 100px; align-items: start;
+}
+.about-left {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity 1.1s var(--ease), transform 1.1s var(--ease);
+}
+.about-left.in {
+  opacity: 1;
+  transform: translateX(0);
+}
+.about-portrait {
+  width: 100%; aspect-ratio: 4/5;
+  background: var(--warm); overflow: hidden; position: relative;
+  border-radius: 4px;
+}
+.about-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.portrait-shine {
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.4) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform .9s var(--ease);
+}
+.about-portrait:hover .portrait-shine { transform: translateX(100%); }
+.about-right { padding-top: 4px; }
+.about-intro {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 1.4rem; line-height: 1.45; letter-spacing: -.02em; margin-bottom: 32px;
+}
+.about-body { font-size: .97rem; line-height: 1.85; color: var(--mid); margin-bottom: 22px; }
+.chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 44px; }
+.chip {
+  font-size: .7rem; letter-spacing: .09em; text-transform: uppercase;
+  border: 1px solid var(--light); padding: 8px 17px; border-radius: 100px;
+  transition: background .3s, border-color .3s, color .3s;
+}
+.chip:hover { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+/* RESEARCH */
+#research { background: transparent; }
+.pub-list { margin-top: 56px; }
+.pub-item {
+  display: grid; grid-template-columns: 52px 1fr 32px;
+  gap: 24px; align-items: start;
+  padding: 44px 24px; border-top: 1px solid var(--light);
+  cursor: none; position: relative; overflow: hidden;
+  transition: padding-left .45s var(--ease);
+  background: rgba(255,255,255,0.95);
+  border-radius: 4px;
+}
+.pub-item::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--blue); transform: translateX(-100%);
+  transition: transform .6s var(--ease); z-index: 0;
+}
+.pub-item:hover { padding-left: 24px; }
+.pub-item:hover::before { transform: translateX(0); }
+.pub-item > * { position: relative; z-index: 1; transition: color .4s; }
+.pub-item:hover .pub-year,
+.pub-item:hover .pub-title,
+.pub-item:hover .pub-abs,
+.pub-item:hover .pub-venue,
+.pub-item:hover .pub-arr { color: var(--white); border-color: rgba(255,255,255,.12); }
+.pub-item:last-child { border-bottom: 1px solid var(--light); }
+.pub-item::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.25) 50%, transparent 70%);
+  transform: translateX(100%);
+  transition: transform .9s var(--ease);
+  z-index: 2; pointer-events: none;
+}
+.pub-item:hover::after { transform: translateX(-100%); }
+.pub-year { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .83rem; padding-top: 3px; }
+.pub-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.12rem; line-height: 1.3; margin-bottom: 12px; }
+.pub-abs { font-size: .87rem; line-height: 1.72; color: var(--mid); }
+.pub-venue {
+  font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--mid); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--light);
+}
+.pub-arr { font-size: 1.4rem; padding-top: 2px; transition: transform .4s var(--ease), color .4s; }
+.pub-item:hover .pub-arr { transform: translate(5px,-5px); }
+
+/* PROJECTS */
+#projects { background: transparent; }
+.proj-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 3px; margin-top: 60px;
+}
+.proj-card {
+  background: rgba(255,255,255,0.95); padding: 52px 44px;
+  min-height: 340px; border-radius: 12px; display: flex; flex-direction: column;
+  justify-content: space-between; cursor: none;
+  position: relative; overflow: hidden;
+}
+.proj-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: var(--blue); transform: translateY(101%);
+  transition: transform .6s var(--ease); z-index: 0;
+}
+.proj-card:hover::after { transform: translateY(0); }
+.proj-card > * { position: relative; z-index: 1; }
+.proj-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.2) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform .9s var(--ease);
+  z-index: 2; pointer-events: none;
+}
+.proj-card:hover::before { transform: translateX(100%); }
+.proj-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+.proj-num { font-size: .7rem; letter-spacing: .15em; text-transform: uppercase; color: var(--mid); transition: color .4s; }
+.proj-badge {
+  font-size: .67rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--mid); border: 1px solid var(--light);
+  padding: 5px 12px; border-radius: 100px; transition: color .4s, border-color .4s;
+}
+.proj-card:hover .proj-num,
+.proj-card:hover .proj-name,
+.proj-card:hover .proj-desc { color: var(--white); }
+.proj-card:hover .proj-badge { color: rgba(255,255,255,.5); border-color: rgba(255,255,255,.2); }
+.proj-card:hover .proj-arrow { color: var(--white); transform: translate(7px,-7px); }
+.proj-name {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 1.5rem; line-height: 1.15; letter-spacing: -.03em;
+  margin-bottom: 14px; transition: color .4s;
+}
+.proj-desc { font-size: .87rem; line-height: 1.7; color: var(--mid); transition: color .4s; }
+.proj-arrow { font-size: 1.35rem; align-self: flex-end; margin-top: 20px; transition: transform .4s var(--ease), color .4s; }
+
+
+.proj-more {
+  margin-top: 48px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: .8rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--light);
+  padding: 16px 32px;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  transition: color .4s var(--ease), border-color .4s;
+}
+
+.btn-more::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--blue);
+  transform: translateX(-101%);
+  transition: transform .6s var(--ease);
+}
+
+.btn-more:hover { color: var(--white); border-color: var(--blue); }
+.btn-more:hover::before { transform: translateX(0); }
+.btn-more span, .btn-more svg { position: relative; z-index: 1; }
+.btn-more:hover svg { transform: translateX(3px); transition: transform .3s var(--ease); }
+.btn-more::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(0deg, transparent 30%, rgba(255,255,255,.2) 50%, transparent 70%);
+  transform: translateY(100%);
+  transition: transform .9s var(--ease);
+  z-index: 2; pointer-events: none;
+}
+.btn-more:hover::after { transform: translateY(-100%); }
+
+/* CONTACT */
+#contact { background: transparent; color: var(--blue); }
+#contact .s-label { color: rgba(26,26,255,.4); }
+#contact .s-label::before { background: rgba(26,26,255,.4); }
+#contact .s-title { color: var(--blue); }
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; margin-top: 72px; }
+.contact-intro { font-size: 1.05rem; line-height: 1.78; color: rgba(26,26,255,.55); margin-bottom: 52px; }
+.c-items { display: flex; flex-direction: column; }
+.c-socials {
+  display: flex; flex-direction: column; gap: 20px;
+}
+.c-soc-link {
+  display: flex; align-items: center; gap: 14px;
+  color: var(--blue); text-decoration: none;
+  font-size: .78rem; letter-spacing: .1em; text-transform: uppercase;
+  transition: color .25s var(--ease), transform .25s var(--ease);
+}
+.c-soc-link:hover { transform: translateX(6px); opacity: .7; }
+.c-soc-link svg { flex-shrink: 0; }
+.c-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 0; border-bottom: 1px solid rgba(26,26,255,.15);
+  text-decoration: none; color: var(--blue);
+  transition: padding-left .35s var(--ease);
+}
+.c-item:hover { padding-left: 10px; }
+.c-lbl { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(26,26,255,.4); }
+.c-val { font-family: 'Syne', sans-serif; font-weight: 600; font-size: .93rem; }
+.c-arr { color: rgba(26,26,255,.3); transition: transform .35s var(--ease), color .3s; }
+.c-item:hover .c-arr { transform: translate(5px,-5px); color: var(--blue); }
+.form-col { display: flex; flex-direction: column; }
+.f-field { border-bottom: 1px solid rgba(26,26,255,.2); transition: border-color .3s; }
+.f-field:focus-within { border-color: var(--blue); }
+.f-field label {
+  display: block; font-size: .67rem; letter-spacing: .16em;
+  text-transform: uppercase; color: rgba(26,26,255,.4); padding: 24px 0 8px;
+}
+.f-field input, .f-field textarea {
+  width: 100%; background: transparent; border: none; outline: none;
+  color: var(--blue); font-family: 'DM Sans', sans-serif;
+  font-size: .97rem; font-weight: 300; padding: 0 0 18px; resize: none;
+}
+.f-field textarea { min-height: 96px; }
+.f-field input::placeholder, .f-field textarea::placeholder { color: rgba(26,26,255,.25); }
+.submit-wrap { margin-top: 40px; display: flex; justify-content: flex-end; }
+.btn-send {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .82rem; letter-spacing: .12em; text-transform: uppercase;
+  background: var(--blue); color: var(--white);
+  border: none; padding: 18px 48px; cursor: none;
+  position: relative; overflow: hidden;
+  transition: color .4s, transform .3s var(--ease);
+}
+.btn-send::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--ink); transform: translateX(-101%);
+  transition: transform .6s var(--ease);
+}
+.btn-send:hover::before { transform: translateX(0); }
+.btn-send:hover { color: var(--white); }
+.btn-send span { position: relative; z-index: 1; }
+.btn-send::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.25) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform .65s var(--ease);
+  z-index: 2; pointer-events: none;
+}
+.btn-send:hover::after { transform: translateX(100%); }
+
+/* FOOTER */
+footer {
+  background: var(--white); border-top: 1px solid rgba(26,26,255,.12);
+  padding: 26px 56px; display: flex; justify-content: space-between; align-items: center;
+}
+.f-copy { font-size: .73rem; letter-spacing: .06em; color: rgba(26,26,255,.35); }
+.f-top {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .73rem; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(26,26,255,.35); text-decoration: none; transition: color .25s;
+}
+.f-top:hover { color: var(--blue); }
+
+/* REVEAL */
+.r { opacity: 0; transform: translateY(44px); transition: opacity .85s var(--ease), transform .85s var(--ease); }
+.r.in { opacity: 1; transform: none; }
+.d1 { transition-delay: .1s; }
+.d2 { transition-delay: .2s; }
+.d3 { transition-delay: .3s; }
+.d4 { transition-delay: .4s; }
+
+/* RESPONSIVE */
+@media (max-width: 880px) {
+  nav { padding: 18px 24px; }
+  .nav-links { display: none; }
+  section { padding: 80px 24px; }
+  #hero { padding: 0 24px 40px; }
+  .hero-name { font-size: clamp(3.8rem, 18vw, 7rem); }
+  .hero-bottom { grid-template-columns: 1fr; gap: 24px; }
+  #about { grid-template-columns: 1fr; gap: 48px; }
+  .about-left { position: static; }
+  .proj-grid { grid-template-columns: 1fr; }
+  .contact-grid { grid-template-columns: 1fr; gap: 56px; }
+  .pub-item { grid-template-columns: 52px 1fr; }
+  .pub-arr { display: none; }
+  footer { flex-direction: column; gap: 10px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+
+<nav>
+  <a href="#hero" class="nav-logo">Alonso Flores-Sáez</a>
+  <ul class="nav-links">
+    <li><a href="#about"><span class="t1">About</span><span class="t2">About</span></a></li>
+    <li><a href="#research"><span class="t1">Research</span><span class="t2">Research</span></a></li>
+    <li><a href="#projects"><span class="t1">Projects</span><span class="t2">Projects</span></a></li>
+    <li><a href="#contact"><span class="t1">Contact</span><span class="t2">Contact</span></a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg-text" id="bgText" aria-hidden="true">AFS</div>
+  <div class="hero-main">
+    <div class="hero-eyebrow"><span>Social Researcher &nbsp;·&nbsp; Data Analyst &nbsp;·&nbsp; Philadelphia, PA</span></div>
+    <h1 class="hero-name">
+      <span class="ln"><span>ALONSO</span></span>
+      <span class="ln"><span>FLORES-SÁEZ</span></span>
+    </h1>
+  </div>
+  <div class="hero-bottom">
+    <div class="hero-socials r">
+      <a href="/cdn-cgi/l/email-protection#3657585007070f76465f424218535243" class="soc-link" title="Email">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+        <span>Email</span>
+      </a>
+      <a href="https://www.linkedin.com/in/flores-saez" target="_blank" class="soc-link" title="LinkedIn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        <span>LinkedIn</span>
+      </a>
+      <a href="https://instagram.com/alonbro" target="_blank" class="soc-link" title="Instagram">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/></svg>
+        <span>Instagram</span>
+      </a>
+      <a href="https://cellsignal.substack.com/" target="_blank" class="soc-link" title="Substack">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z"/></svg>
+        <span>Substack</span>
+      </a>
+    </div>
+    <p class="hero-desc r d1">
+      Social researcher interested in digital networks, culture, and demographic analysis
+    </p>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-strip" aria-hidden="true">
+  <div class="marquee-inner">
+    <span>Demographic Analysis</span><em>·</em>
+    <span>Digital Culture</span><em>·</em>
+    <span>Social Network Analysis</span><em>·</em>
+    <span>Qualitative Research</span><em>·</em>
+    <span>Data Analysis</span><em>·</em>
+    <span>Demographic Analysis</span><em>·</em>
+    <span>Digital Culture</span><em>·</em>
+    <span>Social Network Analysis</span><em>·</em>
+    <span>Qualitative Research</span><em>·</em>
+    <span>Data Analysis</span><em>·</em>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="about-left">
+    <div class="about-portrait">
+      <img src="https://lh3.googleusercontent.com/pw/AP1GczOYZ7VJwyBXR9ZckIE4G_bSaQv-ssq3Rv6sHE4sB6sQoPmboO8tGH6c726-itcj0YjfSzMb_RX5Qz5UXuHUaQUg5pLRfsZ6R7jupA8Hu5BEOrn_clriemhkgW-yrjEt5S6p4EgWKy6osvRr3zOzg8LgHQ=w1270-h843-s-no-gm?authuser=0" alt="Alonso Flores-Sáez">
+      <div class="portrait-shine"></div>
+    </div>
+  </div>
+  <div class="about-right">
+    <div class="s-label r">01 — About</div>
+    <h2 class="s-title r d1">I am Alonso<br>Flores-Sáez</h2>
+    <p class="about-intro r d2">I study digital culture and its effects on democratic processes — using data to understand how communities form identity in networked environments.</p>
+    <p class="about-body r d2">My research interests center on social networks, demographic analysis, and the intersection of technology and civic life. My graduate work and master's thesis examined digital technology use and perception of community identification among young adults in the U.S.</p>
+    <p class="about-body r d3">I have technical expertise in R, STATA, SPSS, NVivo, and ArcGIS. My work informs resource and policy development, strategic advocacy, and collaborative research for organizations working on disability, education, and free expression. I am bilingual in English and Spanish, and fluent in French.</p>
+    <div class="chips r d3">
+      <span class="chip">Demographic Analysis</span>
+      <span class="chip">Social Network Analysis</span>
+      <span class="chip">Digital Culture</span>
+      <span class="chip">R · STATA · SPSS</span>
+      <span class="chip">ArcGIS</span>
+      <span class="chip">NVivo</span>
+    </div>
+  </div>
+</section>
+
+<!-- RESEARCH -->
+<section id="research">
+  <div class="s-label r">02 — Research & Publications</div>
+  <h2 class="s-title r d1">Selected<br>work</h2>
+  <div class="pub-list">
+
+    <div class="pub-item r d1">
+      <div class="pub-year">2024</div>
+      <div>
+        <div class="pub-title">Disability and Care in Underrepresented Communities in Colombia</div>
+        <div class="pub-abs">Qualitative study processing and coding transcriptions of interviews and focus groups to examine experiences of disability and care in underrepresented communities, conducted in partnership with Asdown Colombia.</div>
+        <div class="pub-venue">Asdown Colombia &nbsp;·&nbsp; Qualitative Research</div>
+      </div>
+      <div class="pub-arr">↗</div>
+    </div>
+
+    <div class="pub-item r d2">
+      <div class="pub-year">2024</div>
+      <div>
+        <div class="pub-title">Statistical Analysis of Involuntary Institutionalization in Colombia</div>
+        <div class="pub-abs">Quantitative analysis of datasets examining patterns and conditions of involuntary institutionalization in Colombia, contributing to advocacy efforts around abolition of punitive and carceral logics.</div>
+        <div class="pub-venue">ALCE &nbsp;·&nbsp; Research Report</div>
+      </div>
+      <div class="pub-arr">↗</div>
+    </div>
+
+    <div class="pub-item r d3">
+      <div class="pub-year">2023</div>
+      <div>
+        <div class="pub-title">Digital Technology Use and Community Identification Among Young Adults in the U.S.</div>
+        <div class="pub-abs">Master's thesis examining how digital technology shapes perceptions of community belonging and civic identity among young adults, with implications for democratic participation and social cohesion.</div>
+        <div class="pub-venue">UC Irvine School of Social Sciences &nbsp;·&nbsp; Master's Thesis</div>
+      </div>
+      <div class="pub-arr">↗</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects">
+  <div class="s-label r">03 — Projects</div>
+  <h2 class="s-title r d1">Experience &amp;<br>work</h2>
+  <div class="proj-grid">
+
+    <div class="proj-card r d1">
+      <div class="proj-top">
+        <span class="proj-num">2024–Present</span>
+        <span class="proj-badge">Current</span>
+      </div>
+      <div>
+        <div class="proj-name">Environmental Data Analyst</div>
+        <div class="proj-desc">Data analysis and environmental monitoring at CSL Services, Inc., applying quantitative methods to environmental datasets in Pennsauken, New Jersey.</div>
+        <div class="proj-arrow">↗</div>
+      </div>
+    </div>
+
+    <div class="proj-card r d2">
+      <div class="proj-top">
+        <span class="proj-num">2023–2024</span>
+        <span class="proj-badge">Completed</span>
+      </div>
+      <div>
+        <div class="proj-name">Qualitative Researcher — Asdown Colombia</div>
+        <div class="proj-desc">Processing and coding interview and focus group transcriptions for a qualitative study of disability and care in underrepresented communities across Colombia.</div>
+        <div class="proj-arrow">↗</div>
+      </div>
+    </div>
+
+    <div class="proj-card r d3">
+      <div class="proj-top">
+        <span class="proj-num">2023–2024</span>
+        <span class="proj-badge">Completed</span>
+      </div>
+      <div>
+        <div class="proj-name">Researcher — ALCE, Bogotá</div>
+        <div class="proj-desc">Statistical analysis of datasets on involuntary institutionalization in Colombia, informing advocacy work by ALCE (Abolición de Lógicas de Castigo y Encierro).</div>
+        <div class="proj-arrow">↗</div>
+      </div>
+    </div>
+
+    <div class="proj-card r d4">
+      <div class="proj-top">
+        <span class="proj-num">2022–2023</span>
+        <span class="proj-badge">Completed</span>
+      </div>
+      <div>
+        <div class="proj-name">Master's Research — UC Irvine</div>
+        <div class="proj-desc">Graduate research in Demography and Population Studies examining digital technology use and community identification among young adults, with a focus on democratic participation.</div>
+        <div class="proj-arrow">↗</div>
+      </div>
+    </div>
+
+  </div>
+  <div class="proj-more r d1">
+    <a href="work.html" class="btn-more">
+      <span>See all</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="s-label r">04 — Contact</div>
+  <h2 class="s-title r d1">Let's<br>connect</h2>
+  <div class="contact-grid">
+    <div>
+      <p class="contact-intro r d2">I'm open to collaboration proposals, research partnerships, and new opportunities in social science research and data analysis. Feel free to reach out.</p>
+      <div class="c-items r d3">
+        <a href="/cdn-cgi/l/email-protection#3657585007070f76465f424218535243" class="c-item">
+          <span class="c-lbl">Email</span>
+          <span class="c-val"><span class="__cf_email__" data-cfemail="aacbc4cc9b9b93eadac3dede84cfcedf">[email&#160;protected]</span></span>
+          <span class="c-arr">↗</span>
+        </a>
+        <a href="https://www.linkedin.com/in/flores-saez" target="_blank" class="c-item">
+          <span class="c-lbl">LinkedIn</span>
+          <span class="c-val">linkedin.com/in/flores-saez</span>
+          <span class="c-arr">↗</span>
+        </a>
+        <a href="https://instagram.com/alonbro" target="_blank" class="c-item">
+          <span class="c-lbl">Instagram</span>
+          <span class="c-val">@alonbro</span>
+          <span class="c-arr">↗</span>
+        </a>
+        <a href="https://cellsignal.substack.com/" target="_blank" class="c-item">
+          <span class="c-lbl">Substack</span>
+          <span class="c-val">cellsignal.substack.com</span>
+          <span class="c-arr">↗</span>
+        </a>
+      </div>
+    </div>
+    <div class="form-col r d2">
+      <div class="f-field">
+        <label>Name</label>
+        <input type="text" placeholder="Your full name">
+      </div>
+      <div class="f-field">
+        <label>Email</label>
+        <input type="email" placeholder="your@email.com">
+      </div>
+      <div class="f-field">
+        <label>Message</label>
+        <textarea placeholder="Describe your inquiry or proposal..."></textarea>
+      </div>
+      <div class="submit-wrap">
+        <button class="btn-send"><span>Send Message</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="f-copy">© 2026 Alonso Flores-Sáez — Philadelphia, Pennsylvania</span>
+  <a href="#hero" class="f-top">Back to top ↑</a>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+document.querySelectorAll('a, button, .pub-item, .proj-card, .chip').forEach(el => {
+  el.addEventListener('mouseenter', () => cur.classList.add('big'));
+  el.addEventListener('mouseleave', () => cur.classList.remove('big'));
+});
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }});
+}, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.r, .about-left').forEach(el => io.observe(el));
+
+const bgT = document.getElementById('bgText');
+window.addEventListener('scroll', () => {
+  bgT && (bgT.style.transform = `translateY(${scrollY * .16}px) rotate(-1deg)`);
+}, { passive: true });
+
+const btn = document.querySelector('.btn-send');
+if (btn) {
+  btn.addEventListener('mousemove', e => {
+    const r = btn.getBoundingClientRect();
+    btn.style.transform = `translate(${(e.clientX - r.left - r.width/2) * .13}px,${(e.clientY - r.top - r.height/2) * .13}px)`;
+  });
+  btn.addEventListener('mouseleave', () => btn.style.transform = '');
+}
+
+
+</script>
+</body>
+</html>
