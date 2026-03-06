@@ -358,6 +358,8 @@ section { padding: 136px 56px; }
   margin-bottom: 14px; transition: color .4s;
 }
 .proj-desc { font-size: .87rem; line-height: 1.7; color: var(--mid); transition: color .4s; }
+a.proj-card, a.proj-card:visited { color: var(--ink); }
+a.pub-item, a.pub-item:visited { color: var(--ink); }
 /* SVG arrow for proj cards */
 .proj-arrow {
   align-self: flex-end; margin-top: 20px;
@@ -487,10 +489,10 @@ footer {
   .hero-bg-text { font-size: 42vw; right: -4vw; bottom: -2vw; }
   .hero-eyebrow span { font-size: .7rem; }
   .hero-name {
-    font-size: clamp(3rem, 16.5vw, 5.5rem);
-    line-height: .92;
-    word-break: break-word;
-    hyphens: auto;
+    font-size: clamp(2.4rem, 12.5vw, 4.2rem);
+    line-height: .95;
+    word-break: normal;
+    hyphens: none;
   }
   .hero-bottom {
     grid-template-columns: 1fr;
@@ -557,7 +559,7 @@ footer {
 
 /* Very small phones */
 @media (max-width: 380px) {
-  .hero-name { font-size: clamp(2.6rem, 15vw, 3.5rem); }
+  .hero-name { font-size: clamp(2rem, 11vw, 2.8rem); }
   nav { padding: 18px 20px; }
   section { padding: 60px 20px; }
   #hero { padding: 0 20px 36px; }
@@ -609,7 +611,7 @@ footer {
   </div>
   <div class="hero-bottom">
     <div class="hero-socials r">
-      <a href="mailto:aflores.saez07@gmail.com" class="soc-link" title="Email">
+      <a href="/cdn-cgi/l/email-protection#fd9c9b91928f988ed38e9c9887cdcabd9a909c9491d39e9290" class="soc-link" title="Email">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
         <span>Email</span>
       </a>
@@ -679,7 +681,7 @@ footer {
   <h2 class="s-title r d1">Selected<br>work</h2>
   <div class="pub-list">
 
-    <div class="pub-item r d1">
+    <a href="research-disability.html" class="pub-item r d1" style="text-decoration:none;color:inherit;">
       <div class="pub-year">2024</div>
       <div>
         <div class="pub-title">Disability and Care in Underrepresented Communities in Colombia</div>
@@ -689,9 +691,9 @@ footer {
       <div class="pub-arr">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
       </div>
-    </div>
+    </a>
 
-    <div class="pub-item r d2">
+    <a href="research-alce.html" class="pub-item r d2" style="text-decoration:none;color:inherit;">
       <div class="pub-year">2024</div>
       <div>
         <div class="pub-title">Statistical Analysis of Involuntary Institutionalization in Colombia</div>
@@ -701,9 +703,9 @@ footer {
       <div class="pub-arr">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
       </div>
-    </div>
+    </a>
 
-    <div class="pub-item r d3">
+    <a href="research-thesis.html" class="pub-item r d3" style="text-decoration:none;color:inherit;">
       <div class="pub-year">2023</div>
       <div>
         <div class="pub-title">Digital Technology Use and Community Identification Among Young Adults in the U.S.</div>
@@ -713,7 +715,7 @@ footer {
       <div class="pub-arr">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
       </div>
-    </div>
+    </a>
 
   </div>
 </section>
@@ -738,7 +740,7 @@ footer {
       </div>
     </div>
 
-    <div class="proj-card r d2">
+    <a href="research-disability.html" style="text-decoration:none;display:block;" class="proj-card r d2">
       <div class="proj-top">
         <span class="proj-num">2023–2024</span>
         <span class="proj-badge">Completed</span>
@@ -750,9 +752,9 @@ footer {
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
         </div>
       </div>
-    </div>
+    </a>
 
-    <div class="proj-card r d3">
+    <a href="research-alce.html" style="text-decoration:none;display:block;" class="proj-card r d3">
       <div class="proj-top">
         <span class="proj-num">2023–2024</span>
         <span class="proj-badge">Completed</span>
@@ -764,9 +766,9 @@ footer {
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
         </div>
       </div>
-    </div>
+    </a>
 
-    <div class="proj-card r d4">
+    <a href="research-thesis.html" style="text-decoration:none;display:block;" class="proj-card r d4">
       <div class="proj-top">
         <span class="proj-num">2022–2023</span>
         <span class="proj-badge">Completed</span>
@@ -778,7 +780,7 @@ footer {
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
         </div>
       </div>
-    </div>
+    </a>
 
   </div>
   <div class="proj-more r d1">
@@ -797,9 +799,9 @@ footer {
     <div>
       <p class="contact-intro r d2">I'm open to collaboration proposals, research partnerships, and new opportunities in social science research and data analysis. Feel free to reach out.</p>
       <div class="c-items r d3">
-        <a href="mailto:aflores.saez07@gmail.com" class="c-item">
+        <a href="/cdn-cgi/l/email-protection#0362656f6c7166702d70626679333443646e626a6f2d606c6e" class="c-item">
           <span class="c-lbl">Email</span>
-          <span class="c-val">aflores.saez07@gmail.com</span>
+          <span class="c-val"><span class="__cf_email__" data-cfemail="c6a7a0aaa9b4a3b5e8b5a7a3bcf6f186a1aba7afaae8a5a9ab">[email&#160;protected]</span></span>
           <span class="c-arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg></span>
         </a>
         <a href="https://www.linkedin.com/in/flores-saez" target="_blank" class="c-item">
@@ -844,7 +846,7 @@ footer {
   <a href="#hero" class="f-top">Back to top ↑</a>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // Custom cursor (desktop only)
 const cur = document.getElementById('cur');
 document.addEventListener('mousemove', e => {
