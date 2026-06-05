@@ -78,8 +78,15 @@
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
   .stat{background:var(--panel);padding:14px 16px}
   .stat .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-  .stat .v{font-family:"IBM Plex Mono";font-size:22px;font-weight:600;margin-top:4px}
-  .stat .v small{font-size:12px;color:var(--dim);font-weight:400}
+  .stat .v{font-family:"IBM Plex Mono";font-size:22px;font-weight:600;margin-top:4px;
+    display:flex;align-items:baseline;gap:6px}
+  .stat .v small,.stat .v .ann{font-size:12px;color:var(--dim);font-weight:400}
+  .statin{font-family:"IBM Plex Mono";font-size:22px;font-weight:600;color:inherit;
+    background:transparent;border:none;border-bottom:1px dashed rgba(138,160,170,.5);
+    width:5.5ch;padding:0 0 1px;border-radius:0}
+  .statin:focus{outline:none;border-bottom-color:currentColor}
+  .statin::-webkit-outer-spin-button,.statin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .statin{-moz-appearance:textfield;appearance:textfield}
   .stat.ok .v{color:var(--teal)}
   .stat.peak .v{color:var(--amber)}
   @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -143,10 +150,14 @@
   <div style="display:flex;flex-direction:column;gap:20px">
     <div class="card">
       <div class="stats">
-        <div class="stat ok"><div class="k">Series mean</div><div class="v" id="sMean">–</div></div>
-        <div class="stat peak"><div class="k">Peak</div><div class="v" id="sPeak">–</div></div>
-        <div class="stat"><div class="k">Trough</div><div class="v" id="sTrough">–</div></div>
-        <div class="stat"><div class="k">Peak factor</div><div class="v" id="sPF">–</div></div>
+        <div class="stat ok"><div class="k">Series mean</div>
+          <div class="v"><input class="statin" id="mean" type="number" step="0.01"></div></div>
+        <div class="stat peak"><div class="k">Peak</div>
+          <div class="v"><input class="statin" id="peakV" type="number" step="0.01"><span class="ann" id="peakAt"></span></div></div>
+        <div class="stat"><div class="k">Trough</div>
+          <div class="v"><input class="statin" id="troughV" type="number" step="0.01"><span class="ann" id="troughAt"></span></div></div>
+        <div class="stat"><div class="k">Peak factor</div>
+          <div class="v"><input class="statin" id="pfV" type="number" step="0.01"><span class="ann">×</span></div></div>
       </div>
     </div>
 
@@ -270,10 +281,14 @@ function recompute(){
   for(const r of rows){if(r.pattern>pk.pattern)pk=r;if(r.pattern<tr.pattern)tr=r;}
   const fmtHr=h=>{const H=Math.floor(h)%24,M=Math.round((h-Math.floor(h))*60);
     return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0');};
-  $('#sMean').innerHTML=mean.toFixed(2);
-  $('#sPeak').innerHTML=pk.pattern.toFixed(2)+' <small>@ '+fmtHr(pk.hr)+'</small>';
-  $('#sTrough').innerHTML=tr.pattern.toFixed(2)+' <small>@ '+fmtHr(tr.hr)+'</small>';
-  $('#sPF').innerHTML=avg?(pk.pattern/avg).toFixed(2)+'<small>×</small>':'–';
+  const peakFactor=avg?pk.pattern/avg:1;
+  LAST.mean=mean; LAST.peakVal=pk.pattern; LAST.troughVal=tr.pattern; LAST.peakFactor=peakFactor;
+  setStat('#mean',mean.toFixed(2));
+  setStat('#peakV',pk.pattern.toFixed(2));
+  setStat('#troughV',tr.pattern.toFixed(2));
+  setStat('#pfV',peakFactor.toFixed(2));
+  $('#peakAt').textContent='@ '+fmtHr(pk.hr);
+  $('#troughAt').textContent='@ '+fmtHr(tr.hr);
   $('#rowinfo').textContent=rows.length+' rows · '+data.step+'-min · '+data.spanDays.toFixed(2)+' d'
     +(data.capped?' · capped at 200k (move End in)':'');
   drawChart(A,avg,norm);
@@ -340,6 +355,25 @@ function setFactorForHour(h,f){
   }
   recompute();
 }
+function setStat(sel,val){const el=$(sel);if(el && el!==document.activeElement)el.value=val;}
+// rescale the swing around the mean: n' = 1 + (n-1)*k  (keeps daily mean, changes peak/trough)
+function rescaleAmplitude(k){
+  if(!LAST)return; const norm=LAST.norm;
+  for(const tr of body.querySelectorAll('tr')){
+    const fi=parseFloat(tr.querySelector('.f').value); if(isNaN(fi))continue;
+    const np=1+((fi/norm)-1)*k;
+    tr.querySelector('.f').value=(np<0?0:np).toFixed(4);
+  }
+  recompute();
+}
+function setPeakFactor(T){           // T = peak / mean
+  const maxN=LAST.peakFactor; if(Math.abs(maxN-1)<1e-6)return;
+  rescaleAmplitude((T-1)/(maxN-1));
+}
+function setTroughTo(Tr){             // Tr = absolute trough value
+  const minN=LAST.troughVal/LAST.avg; if(Math.abs(minN-1)<1e-6)return;
+  rescaleAmplitude(((Tr/LAST.avg)-1)/(minN-1));
+}
 
 function downloadBlob(blob,name){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
@@ -402,6 +436,11 @@ $('#copyOut').onclick=function(){copyText(buildTSV(true)).then(()=>flash(this,'�
   $('#end').value=toLocal(new Date(d.getTime()+14*86400000));
   loadDefaults();
   ['avg','noise','interval','start','end'].forEach(id=>$('#'+id).addEventListener('input',recompute));
+  // editable stats (commit on change)
+  $('#mean').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){$('#avg').value=v;recompute();}});
+  $('#peakV').addEventListener('change',e=>{const P=parseFloat(e.target.value);if(!isNaN(P)&&LAST&&LAST.avg)setPeakFactor(P/LAST.avg);});
+  $('#troughV').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&LAST)setTroughTo(v);});
+  $('#pfV').addEventListener('change',e=>{const T=parseFloat(e.target.value);if(!isNaN(T)&&LAST)setPeakFactor(T);});
   $('#addRow').onclick=()=>{addAnchorRow(12,1.0,'new');recompute();};
   $('#resetRows').onclick=()=>{loadDefaults();recompute();};
 
