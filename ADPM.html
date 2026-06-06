@@ -73,7 +73,6 @@
     color:var(--dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:600}
   td{padding:3px 6px;border-bottom:1px solid var(--grid)}
   td input{padding:6px 7px;font-size:13px;border-radius:5px}
-  td.lab input{font-family:"IBM Plex Sans";font-size:12px;color:var(--dim)}
   .del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:2px 6px;line-height:1}
   .del:hover{color:var(--red)}
   .tbtns{display:flex;gap:8px;margin-top:12px}
@@ -143,10 +142,10 @@
     </div>
 
     <div class="card">
-      <h2>Peaks &amp; Troughs</h2>
+      <h2>Max &amp; Min</h2>
       <div class="body">
         <table id="anchorTbl">
-          <thead><tr><th style="width:34%">Hour 0–24</th><th style="width:30%">Factor</th><th>Label</th><th></th></tr></thead>
+          <thead><tr><th style="width:42%">Hour 0–24</th><th style="width:42%">Factor</th><th></th></tr></thead>
           <tbody id="anchorBody"></tbody>
         </table>
         <div class="tbtns">
@@ -164,11 +163,11 @@
       <div class="stats">
         <div class="stat ok"><div class="k">Series mean</div>
           <div class="v"><input class="statin" id="mean" type="number" step="0.01"></div></div>
-        <div class="stat peak"><div class="k">Peak</div>
+        <div class="stat peak"><div class="k">Max</div>
           <div class="v"><input class="statin" id="peakV" type="number" step="0.01"><span class="ann" id="peakAt"></span></div></div>
-        <div class="stat"><div class="k">Trough</div>
+        <div class="stat"><div class="k">Min</div>
           <div class="v"><input class="statin" id="troughV" type="number" step="0.01"><span class="ann" id="troughAt"></span></div></div>
-        <div class="stat"><div class="k">Peak factor</div>
+        <div class="stat"><div class="k">Max factor</div>
           <div class="v"><input class="statin" id="pfV" type="number" step="0.01"><span class="ann">×</span></div></div>
       </div>
     </div>
@@ -181,8 +180,8 @@
       </div>
       <div class="chartwrap"><canvas id="chart" height="360"></canvas></div>
       <div class="exports">
-        <button class="btn solid" id="xlsx">⬇ Download .xlsx</button>
-        <button class="btn" id="csv">⬇ Download .csv</button>
+        <button class="btn solid" id="xlsx">↓ Download .xlsx</button>
+        <button class="btn" id="csv">↓ Download .csv</button>
         <button class="btn amber" id="copyAll">⧉ Copy table</button>
         <button class="btn amber" id="copyOut">⧉ Copy output</button>
         <span class="mono" id="rowinfo" style="color:var(--dim);font-size:12px;align-self:center"></span>
@@ -192,34 +191,25 @@
 </div>
 
 <footer>
-  Vibe Coded By Alonso :)
+  This is a JavaScript port of the <b>Average Mode</b> sheet: same linear interpolation between your
+  anchor points, same normalization (output&nbsp;=&nbsp;average × factor ÷ mean&nbsp;factor), same ±noise.
+  The <code>.xlsx</code> export writes <code>Time · Hour · Pattern · Output</code> so it round-trips into Excel.
+  Excel <i>formulas</i> can't run in a browser, so the math lives in JS here — but the numbers match the workbook.
 </footer>
 
 <script>
 const DEFAULT_ANCHORS = [
-  [0,0.65,'Midnight'],
-  [2,0.55,'Overnight minimum'],
-  [4,0.55,'Pre-dawn'],
-  [6,0.83,'Early-morning rise'],
-  [8,1.18,'Morning'],
-  [10,1.30,'MORNING PEAK'],
-  [12,1.24,'Midday'],
-  [14,1.18,'Afternoon'],
-  [16,1.19,'Late afternoon'],
-  [18,1.27,'Evening rise'],
-  [20,1.29,'EVENING PEAK'],
-  [22,1.05,'Night'],
-  [24,0.65,'= Hour 0 (keep last)'],
+  [0,0.65],[2,0.55],[4,0.55],[6,0.83],[8,1.18],[10,1.30],[12,1.24],
+  [14,1.18],[16,1.19],[18,1.27],[20,1.29],[22,1.05],[24,0.65],
 ];
 const $ = s => document.querySelector(s);
 const body = $('#anchorBody');
 let DRAG=null, HITPTS=[], CHART={};   // chart-drag state
 
-function addAnchorRow(h='',f='',l=''){
+function addAnchorRow(h='',f=''){
   const tr=document.createElement('tr');
   tr.innerHTML=`<td><input type="number" step="0.25" class="h" value="${h}"></td>
     <td><input type="number" step="0.01" class="f" value="${f}"></td>
-    <td class="lab"><input type="text" class="l" value="${l.replace(/"/g,'&quot;')}"></td>
     <td><button class="del" title="remove">✕</button></td>`;
   tr.querySelector('.del').onclick=()=>{tr.remove();recompute();};
   tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',recompute));
@@ -461,7 +451,7 @@ $('#copyOut').onclick=function(){copyText(buildTSV(true)).then(()=>flash(this,'�
   $('#peakV').addEventListener('change',e=>{const P=parseFloat(e.target.value);if(!isNaN(P)&&LAST&&LAST.avg)setPeakFactor(P/LAST.avg);});
   $('#troughV').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&LAST)setTroughTo(v);});
   $('#pfV').addEventListener('change',e=>{const T=parseFloat(e.target.value);if(!isNaN(T)&&LAST)setPeakFactor(T);});
-  $('#addRow').onclick=()=>{addAnchorRow(12,1.0,'new');recompute();};
+  $('#addRow').onclick=()=>{addAnchorRow(12,1.0);recompute();};
   $('#resetRows').onclick=()=>{loadDefaults();recompute();};
   $('#themeBtn').onclick=function(){
     const light=document.body.classList.toggle('light');
