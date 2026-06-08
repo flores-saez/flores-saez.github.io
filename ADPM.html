@@ -66,6 +66,12 @@
   }
   input:focus,select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,176,0,.12)}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  input[type=checkbox]{width:auto;margin-right:5px;accent-color:var(--amber);vertical-align:-1px}
+  .filebtn{display:inline-block;font-family:"IBM Plex Sans";font-weight:600;font-size:12.5px;
+    background:var(--amber);color:#16110a;border:1px solid var(--amber);padding:9px 13px;border-radius:7px;cursor:pointer}
+  .filebtn:hover{filter:brightness(1.08)}
+  .checks{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:10px}
+  .checks label{display:flex;align-items:center;cursor:pointer}
   .hint{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.4}
 
   table{width:100%;border-collapse:collapse;font-family:"IBM Plex Mono",monospace;font-size:13px}
@@ -120,6 +126,26 @@
 <div class="wrap">
   <!-- LEFT: controls -->
   <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="card">
+      <h2>Model from data (CSV)</h2>
+      <div class="body">
+        <label class="filebtn" for="csvFile">Import CSV…</label>
+        <input id="csvFile" type="file" accept=".csv,.tsv,.txt" style="display:none">
+        <div id="csvMap" style="display:none;margin-top:12px">
+          <div class="row2">
+            <div class="field"><label>Time column</label><select id="csvTime"></select></div>
+            <div class="field"><label>Value column</label><select id="csvVal"></select></div>
+          </div>
+          <div class="checks">
+            <label><input type="checkbox" id="csvShape" checked>Fit diurnal shape</label>
+            <label><input type="checkbox" id="csvVar" checked>Estimate day variation</label>
+            <label><input type="checkbox" id="csvRange" checked>Match date range</label>
+          </div>
+        </div>
+        <div class="hint" id="csvStatus">Import observed flow (timestamp + value) to fit the average, diurnal shape, and day-to-day variation straight from data.</div>
+      </div>
+    </div>
+
     <div class="card">
       <h2>Controls</h2>
       <div class="body">
@@ -204,7 +230,10 @@
 </div>
 
 <footer>
-  Vibe Coded by Alonso :)
+  This is a JavaScript port of the <b>Average Mode</b> sheet: same linear interpolation between your
+  anchor points, same normalization (output&nbsp;=&nbsp;average × factor ÷ mean&nbsp;factor), same ±noise.
+  The <code>.xlsx</code> export writes <code>Time · Hour · Pattern · Output</code> so it round-trips into Excel.
+  Excel <i>formulas</i> can't run in a browser, so the math lives in JS here — but the numbers match the workbook.
 </footer>
 
 <script>
@@ -481,6 +510,77 @@ function buildTSV(outputOnly){
 $('#copyAll').onclick=function(){copyText(buildTSV(false)).then(()=>flash(this,'✓ Copied!')).catch(()=>flash(this,'✗ blocked'));};
 $('#copyOut').onclick=function(){copyText(buildTSV(true)).then(()=>flash(this,'✓ Copied!')).catch(()=>flash(this,'✗ blocked'));};
 
+// ---- Model from data (CSV) ----
+let CSVDATA=null;
+function toLocalInput(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+function escHtml(s){return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+function parseDate(s){
+  if(s==null)return null; s=String(s).trim(); if(!s)return null;
+  if(/^-?\d+(\.\d+)?$/.test(s)){const num=Number(s);return (num>20000&&num<80000)?new Date(Math.round((num-25569)*86400000)):null;}
+  if(!/[-/:T]/.test(s))return null;
+  let d=new Date(s); if(!isNaN(d))return d;
+  d=new Date(s.replace(' ','T')); return isNaN(d)?null:d;
+}
+function parseCSV(text){
+  text=text.replace(/\r\n?/g,'\n').replace(/\n+$/,'');
+  const lines=text.split('\n').filter(l=>l.length); if(!lines.length)return {header:[],rows:[]};
+  let delim=',',best=-1; for(const d of [',','\t',';']){const c=lines[0].split(d).length; if(c>best){best=c;delim=d;}}
+  const split=line=>{const out=[];let cur='',q=false;
+    for(let i=0;i<line.length;i++){const ch=line[i];
+      if(q){if(ch=='"'){if(line[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
+      else{if(ch=='"')q=true;else if(ch===delim){out.push(cur);cur='';}else cur+=ch;}}
+    out.push(cur);return out.map(s=>s.trim());};
+  const r0=lines.map(split);
+  const looksNum=s=>s!==''&&!isNaN(Number(s));
+  const headerLikely=r0[0].some(c=>c!==''&&!looksNum(c)&&!parseDate(c));
+  return headerLikely?{header:r0[0],rows:r0.slice(1)}:{header:r0[0].map((_,i)=>'Column '+(i+1)),rows:r0};
+}
+function detectColumns(){
+  const {header,rows}=CSVDATA, n=header.length, sample=rows.slice(0,Math.min(60,rows.length));
+  const dr=[],nr=[];
+  for(let c=0;c<n;c++){let dc=0,nc=0,tot=0;
+    for(const r of sample){const cell=r[c]; if(cell==null||cell==='')continue; tot++; if(parseDate(cell))dc++; if(!isNaN(Number(cell)))nc++;}
+    dr[c]=tot?dc/tot:0; nr[c]=tot?nc/tot:0;}
+  let ti=0,bd=-1; for(let c=0;c<n;c++)if(dr[c]>bd){bd=dr[c];ti=c;}
+  const pref=['flow','output','value','measurement','reading','gpm','mgd','cfs'];
+  let vi=-1;
+  for(let c=0;c<n;c++){const nm=(header[c]||'').toLowerCase(); if(c!==ti&&pref.some(p=>nm.includes(p))){vi=c;break;}}
+  if(vi<0){let bn=-1; for(let c=0;c<n;c++){const nm=(header[c]||'').toLowerCase(); if(c===ti||nm.includes('hour'))continue; if(nr[c]>bn){bn=nr[c];vi=c;}}}
+  if(vi<0)vi=(ti===0?Math.min(1,n-1):0);
+  return {ti,vi};
+}
+function factorFromData(h,recs,M){
+  let sum=0,cnt=0; const hh=((h%24)+24)%24;
+  for(const r of recs){let dh=Math.abs(r.hr-hh); dh=Math.min(dh,24-dh); if(dh<=1.0){sum+=r.v;cnt++;}}
+  return cnt?(sum/cnt)/M:null;
+}
+function fitFromCSV(){
+  if(!CSVDATA)return;
+  const ti=+$('#csvTime').value, vi=+$('#csvVal').value, header=CSVDATA.header;
+  const recs=[];
+  for(const r of CSVDATA.rows){const t=parseDate(r[ti]); const raw=r[vi]; const v=Number(raw);
+    if(t&&raw!=null&&raw!==''&&isFinite(v))recs.push({t,v,hr:t.getHours()+t.getMinutes()/60+t.getSeconds()/3600});}
+  if(recs.length<2){$('#csvStatus').textContent='Could not read enough timestamp + value rows — try different columns.';return;}
+  const M=recs.reduce((s,r)=>s+r.v,0)/recs.length;
+  $('#avg').value=+M.toFixed(2);
+  if($('#csvShape').checked && M>0){
+    for(const tr of body.querySelectorAll('tr')){const h=parseFloat(tr.querySelector('.h').value); if(isNaN(h))continue;
+      const f=factorFromData(h,recs,M); if(f!=null)tr.querySelector('.f').value=+f.toFixed(3);}
+  }
+  if($('#csvVar').checked){
+    const byDay={}; recs.forEach(r=>{const k=new Date(r.t.getFullYear(),r.t.getMonth(),r.t.getDate()).getTime();(byDay[k]=byDay[k]||[]).push(r.v);});
+    const dm=[],da=[]; Object.values(byDay).forEach(a=>{const m=a.reduce((s,x)=>s+x,0)/a.length; dm.push(m); da.push(Math.max(...a)-Math.min(...a));});
+    if(dm.length>=2){const std=a=>{const m=a.reduce((s,x)=>s+x,0)/a.length;return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/a.length);};
+      const R=Math.sqrt(3);  // std of uniform(±a) is a/sqrt(3): scale up so the model reproduces the observed spread
+      $('#varLevel').value=Math.min(50,Math.round(std(dm)/M*100*R));
+      const am=da.reduce((s,x)=>s+x,0)/da.length; $('#varSwing').value=am>0?Math.min(50,Math.round(std(da)/am*100*R)):0;}
+  }
+  if($('#csvRange').checked){let mn=recs[0].t,mx=recs[0].t; for(const r of recs){if(r.t<mn)mn=r.t;if(r.t>mx)mx=r.t;}
+    $('#start').value=toLocalInput(mn); $('#end').value=toLocalInput(mx);}
+  $('#csvStatus').innerHTML='Fitted from <b>'+recs.length.toLocaleString()+'</b> rows · time: <b>'+escHtml(header[ti])+'</b> · value: <b>'+escHtml(header[vi])+'</b> · avg <b>'+M.toFixed(2)+'</b>';
+  recompute();
+}
+
 // init
 (function(){
   const toLocal=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
@@ -490,6 +590,21 @@ $('#copyOut').onclick=function(){copyText(buildTSV(true)).then(()=>flash(this,'�
   loadDefaults();
   ['avg','noise','interval','start','end','varSwing','varLevel'].forEach(id=>$('#'+id).addEventListener('input',recompute));
   $('#reseed').onclick=()=>{SEED=Math.floor(Math.random()*1e9);recompute();};
+  // CSV import / model-from-data
+  $('#csvFile').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{CSVDATA=parseCSV(rd.result);
+      if(!CSVDATA.rows.length){$('#csvStatus').textContent='No rows found in that file.';return;}
+      const opts=CSVDATA.header.map((h,i)=>'<option value="'+i+'">'+escHtml(h)+'</option>').join('');
+      $('#csvTime').innerHTML=opts; $('#csvVal').innerHTML=opts;
+      const det=detectColumns(); $('#csvTime').value=det.ti; $('#csvVal').value=det.vi;
+      $('#csvMap').style.display=''; fitFromCSV();};
+    rd.readAsText(f);
+  });
+  $('#csvTime').addEventListener('change',fitFromCSV);
+  $('#csvVal').addEventListener('change',fitFromCSV);
+  ['csvShape','csvVar','csvRange'].forEach(id=>$('#'+id).addEventListener('change',fitFromCSV));
   // editable stats (commit on change)
   $('#mean').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){$('#avg').value=v;recompute();}});
   $('#peakV').addEventListener('change',e=>{const P=parseFloat(e.target.value);if(!isNaN(P)&&LAST&&LAST.avg)setPeakFactor(P/LAST.avg);});
