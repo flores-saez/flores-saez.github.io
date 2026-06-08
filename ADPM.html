@@ -142,6 +142,18 @@
     </div>
 
     <div class="card">
+      <h2>Day-to-day variation</h2>
+      <div class="body">
+        <div class="row2">
+          <div class="field"><label>Max/Min swing ±%</label><input id="varSwing" type="number" step="1" value="10"></div>
+          <div class="field"><label>Daily level ±%</label><input id="varLevel" type="number" step="1" value="5"></div>
+        </div>
+        <button class="btn amber" id="reseed" style="margin-top:2px">⟳ New variation</button>
+        <div class="hint"><b>Swing</b> widens/narrows each day's curve; <b>Level</b> shifts a whole day up or down. Every calendar day draws its own random max &amp; min. Set both to 0 for identical days.</div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Max &amp; Min</h2>
       <div class="body">
         <table id="anchorTbl">
@@ -176,6 +188,7 @@
       <h2>Diurnal profile — one day</h2>
       <div class="legend">
         <span><i style="background:var(--curve)"></i>Pattern</span>
+        <span><i style="background:var(--curve);opacity:.3"></i>Day-to-day range</span>
         <span><i style="background:var(--marker)"></i>Anchor point — drag to move (15-min snap) &amp; rescale</span>
       </div>
       <div class="chartwrap"><canvas id="chart" height="360"></canvas></div>
@@ -205,6 +218,8 @@ const DEFAULT_ANCHORS = [
 const $ = s => document.querySelector(s);
 const body = $('#anchorBody');
 let DRAG=null, HITPTS=[], CHART={};   // chart-drag state
+let SEED=Math.floor(Math.random()*1e9);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
 function addAnchorRow(h='',f=''){
   const tr=document.createElement('tr');
@@ -247,6 +262,8 @@ function normConst(A){
 function buildSeries(){
   const avg=parseFloat($('#avg').value)||0;
   const noise=parseFloat($('#noise').value)||0;
+  const S=Math.max(0,parseFloat($('#varSwing').value)||0)/100;
+  const L=Math.max(0,parseFloat($('#varLevel').value)||0)/100;
   const step=parseInt($('#interval').value,10);
   const start=$('#start').value?new Date($('#start').value):new Date();
   let end=$('#end').value?new Date($('#end').value):new Date(start.getTime()+14*86400000);
@@ -257,12 +274,25 @@ function buildSeries(){
   let capped=false; const CAP=200000;
   if(total<1)total=1;
   if(total>CAP){total=CAP;capped=true;}
+  // one stable random swing/level per calendar day (seeded so it survives recomputes)
+  const d0=new Date(start.getFullYear(),start.getMonth(),start.getDate()).getTime();
+  const dayCache={};
+  const dayMult=t=>{
+    const ds=new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();
+    const di=Math.round((ds-d0)/86400000);
+    if(!(di in dayCache)){
+      const rng=mulberry32((SEED+di*2654435761)>>>0);
+      dayCache[di]={s:1+(rng()*2-1)*S, l:1+(rng()*2-1)*L};
+    }
+    return dayCache[di];
+  };
   const rows=[];
   for(let i=0;i<total;i++){
     const t=new Date(start.getTime()+i*stepMs);
     const hr=t.getHours()+t.getMinutes()/60+t.getSeconds()/3600;
-    const raw=factorAt(hr,A);
-    const pattern=norm?avg*raw/norm:0;
+    const n=norm?factorAt(hr,A)/norm:0;            // daily-mean 1
+    const {s,l}=dayMult(t);
+    const pattern=avg*l*(1+(n-1)*s);               // level shifts whole day; swing scales the deviation
     const out=pattern*(1+(Math.random()*2-1)*noise/100);
     rows.push({t,hr,pattern,out});
   }
@@ -300,9 +330,18 @@ function drawChart(A,avg,norm){
   cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
   const c=cv.getContext('2d'); c.scale(dpr,dpr); c.clearRect(0,0,W,H);
   const padL=46,padR=14,padT=16,padB=30, plotW=W-padL-padR, plotH=H-padT-padB;
-  // one-day profile sampled every 6 min
-  const pts=[]; for(let m=0;m<=1440;m+=6){const hr=m/60; pts.push({hr,v:norm?avg*factorAt(hr,A)/norm:0});}
-  let vmax=Math.max(...pts.map(p=>p.v),avg*1.1), vmin=Math.min(...pts.map(p=>p.v),0);
+  // one-day profile sampled every 6 min, plus day-to-day variation band
+  const S=Math.max(0,parseFloat($('#varSwing').value)||0)/100;
+  const L=Math.max(0,parseFloat($('#varLevel').value)||0)/100;
+  const band=(S>0||L>0);
+  const pts=[];
+  for(let m=0;m<=1440;m+=6){const hr=m/60; const n=norm?factorAt(hr,A)/norm:0; const v=avg*n; let hi=v,lo=v;
+    if(band){const dev=n-1;
+      if(dev>=0){hi=avg*(1+L)*(1+dev*(1+S)); lo=avg*(1-L)*(1+dev*(1-S));}
+      else{hi=avg*(1+L)*(1+dev*(1-S)); lo=avg*(1-L)*(1+dev*(1+S));}
+      if(lo<0)lo=0;}
+    pts.push({hr,v,hi,lo});}
+  let vmax=Math.max(...pts.map(p=>p.hi),avg*1.1), vmin=Math.min(...pts.map(p=>p.lo),0);
   vmin=Math.min(vmin,0); vmax*=1.06;
   const X=hr=>padL+(hr/24)*plotW;
   const Y=v=>padT+plotH-((v-vmin)/(vmax-vmin))*plotH;
@@ -322,6 +361,13 @@ function drawChart(A,avg,norm){
   c.setLineDash([4,4]);c.strokeStyle=cc('--avgline');
   c.beginPath();c.moveTo(padL,Y(avg));c.lineTo(W-padR,Y(avg));c.stroke();c.setLineDash([]);
   c.fillStyle=cc('--avglabel');c.textAlign='left';c.fillText('avg',padL+4,Y(avg)+4);
+  // day-to-day variation band
+  if(band){
+    c.beginPath();c.moveTo(X(pts[0].hr),Y(pts[0].hi));
+    pts.forEach(p=>c.lineTo(X(p.hr),Y(p.hi)));
+    for(let i=pts.length-1;i>=0;i--)c.lineTo(X(pts[i].hr),Y(pts[i].lo));
+    c.closePath();c.globalAlpha=0.15;c.fillStyle=cc('--curve');c.fill();c.globalAlpha=1;
+  }
   // fill under curve
   const grad=c.createLinearGradient(0,padT,0,padT+plotH);
   grad.addColorStop(0,cc('--fillTop'));grad.addColorStop(1,cc('--fillBot'));
@@ -445,7 +491,8 @@ $('#copyOut').onclick=function(){copyText(buildTSV(true)).then(()=>flash(this,'�
   $('#start').value=toLocal(d);
   $('#end').value=toLocal(new Date(d.getTime()+14*86400000));
   loadDefaults();
-  ['avg','noise','interval','start','end'].forEach(id=>$('#'+id).addEventListener('input',recompute));
+  ['avg','noise','interval','start','end','varSwing','varLevel'].forEach(id=>$('#'+id).addEventListener('input',recompute));
+  $('#reseed').onclick=()=>{SEED=Math.floor(Math.random()*1e9);recompute();};
   // editable stats (commit on change)
   $('#mean').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){$('#avg').value=v;recompute();}});
   $('#peakV').addEventListener('change',e=>{const P=parseFloat(e.target.value);if(!isNaN(P)&&LAST&&LAST.avg)setPeakFactor(P/LAST.avg);});
