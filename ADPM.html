@@ -82,6 +82,15 @@
   .del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:2px 6px;line-height:1}
   .del:hover{color:var(--red)}
   .tbtns{display:flex;gap:8px;margin-top:12px}
+  .anchorWrap{display:flex;gap:10px;align-items:flex-start}
+  .anchorLabels{display:flex;flex-direction:column;gap:4px;flex:0 0 auto}
+  .anchorLabels span{height:30px;display:flex;align-items:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  #anchorBody{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;flex:1 1 auto}
+  .acol{flex:0 0 auto;width:54px;display:flex;flex-direction:column;gap:4px;align-items:stretch}
+  .acol input{width:100%;height:30px;padding:4px;font-size:12px;text-align:center;font-family:"IBM Plex Mono",monospace;border-radius:5px}
+  .acol input::-webkit-outer-spin-button,.acol input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .acol input{-moz-appearance:textfield;appearance:textfield}
+  .acol .del{height:18px;line-height:1;font-size:12px;padding:0;border-radius:4px}
   button.btn{
     font-family:"IBM Plex Sans";font-weight:600;font-size:12.5px;letter-spacing:.03em;
     background:var(--panel2);color:var(--ink);border:1px solid var(--line);
@@ -131,6 +140,7 @@
       <div class="body">
         <label class="filebtn" for="csvFile">Import CSV…</label>
         <input id="csvFile" type="file" accept=".csv,.tsv,.txt" style="display:none">
+        <button class="btn" id="csvReset" style="margin-left:8px">Clear &amp; reset</button>
         <div id="csvMap" style="display:none;margin-top:12px">
           <div class="row2">
             <div class="field"><label>Time column</label><select id="csvTime"></select></div>
@@ -178,21 +188,6 @@
         <div class="hint"><b>Swing</b> widens/narrows each day's curve; <b>Level</b> shifts a whole day up or down. Every calendar day draws its own random max &amp; min. Set both to 0 for identical days.</div>
       </div>
     </div>
-
-    <div class="card">
-      <h2>Max &amp; Min</h2>
-      <div class="body">
-        <table id="anchorTbl">
-          <thead><tr><th style="width:42%">Hour 0–24</th><th style="width:42%">Factor</th><th></th></tr></thead>
-          <tbody id="anchorBody"></tbody>
-        </table>
-        <div class="tbtns">
-          <button class="btn amber" id="addRow">+ Add anchor</button>
-          <button class="btn" id="resetRows">Reset</button>
-        </div>
-        <div class="hint">Hours ascending; keep first = 0 and last = 24. Factors are relative — the absolute scale is auto-normalized.</div>
-      </div>
-    </div>
   </div>
 
   <!-- RIGHT: output -->
@@ -215,7 +210,7 @@
       <div class="legend">
         <span><i style="background:var(--curve)"></i>Pattern</span>
         <span><i style="background:var(--curve);opacity:.3"></i>Day-to-day range</span>
-        <span><i style="background:var(--marker)"></i>Anchor point — drag to move (15-min snap) &amp; rescale</span>
+        <span><i style="background:var(--marker)"></i>Anchor point — drag to move (15-min snap) &amp; rescale · right-click to add / delete</span>
       </div>
       <div class="chartwrap"><canvas id="chart" height="360"></canvas></div>
       <div class="exports">
@@ -226,11 +221,29 @@
         <span class="mono" id="rowinfo" style="color:var(--dim);font-size:12px;align-self:center"></span>
       </div>
     </div>
+
+    <div class="card">
+      <h2>Max &amp; Min</h2>
+      <div class="body">
+        <div class="anchorWrap">
+          <div class="anchorLabels"><span>Hr</span><span>Fac</span></div>
+          <div id="anchorBody"></div>
+        </div>
+        <div class="tbtns">
+          <button class="btn amber" id="addRow">+ Add anchor</button>
+          <button class="btn" id="resetRows">Reset</button>
+        </div>
+        <div class="hint">Each column is an anchor — hour on top, factor below. Factors are relative (auto-normalized). Right-click the chart to add or delete points.</div>
+      </div>
+    </div>
   </div>
 </div>
 
 <footer>
-  Vibe Coded by Alonso :)
+  This is a JavaScript port of the <b>Average Mode</b> sheet: same linear interpolation between your
+  anchor points, same normalization (output&nbsp;=&nbsp;average × factor ÷ mean&nbsp;factor), same ±noise.
+  The <code>.xlsx</code> export writes <code>Time · Hour · Pattern · Output</code> so it round-trips into Excel.
+  Excel <i>formulas</i> can't run in a browser, so the math lives in JS here — but the numbers match the workbook.
 </footer>
 
 <script>
@@ -245,18 +258,26 @@ let SEED=Math.floor(Math.random()*1e9);
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
 function addAnchorRow(h='',f=''){
-  const tr=document.createElement('tr');
-  tr.innerHTML=`<td><input type="number" step="0.25" class="h" value="${h}"></td>
-    <td><input type="number" step="0.01" class="f" value="${f}"></td>
-    <td><button class="del" title="remove">✕</button></td>`;
-  tr.querySelector('.del').onclick=()=>{tr.remove();recompute();};
-  tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',recompute));
-  body.appendChild(tr);
+  const col=document.createElement('div');
+  col.className='acol';
+  col.innerHTML=`<input type="number" step="0.25" class="h" value="${h}">
+    <input type="number" step="0.01" class="f" value="${f}">
+    <button class="del" title="remove">✕</button>`;
+  col.querySelector('.del').onclick=()=>{col.remove();recompute();};
+  col.querySelectorAll('input').forEach(i=>i.addEventListener('input',recompute));
+  col.querySelector('.h').addEventListener('change',()=>{sortAnchorRows();recompute();});
+  body.appendChild(col);
+}
+function sortAnchorRows(){
+  [...body.querySelectorAll('.acol')]
+    .sort((a,b)=>{const ha=parseFloat(a.querySelector('.h').value),hb=parseFloat(b.querySelector('.h').value);
+      return (isNaN(ha)?1e9:ha)-(isNaN(hb)?1e9:hb);})
+    .forEach(el=>body.appendChild(el));
 }
 function loadDefaults(){body.innerHTML='';DEFAULT_ANCHORS.forEach(a=>addAnchorRow(...a));}
 
 function getAnchors(){
-  const rows=[...body.querySelectorAll('tr')].map(tr=>({
+  const rows=[...body.querySelectorAll('.acol')].map(tr=>({
     h:parseFloat(tr.querySelector('.h').value),
     f:parseFloat(tr.querySelector('.f').value)
   })).filter(a=>!isNaN(a.h)&&!isNaN(a.f));
@@ -406,7 +427,7 @@ function drawChart(A,avg,norm){
   HITPTS=[];
   A.forEach(a=>{const x=X(a.h),y=Y(norm?avg*a.f/norm:0);
     let row=null;
-    for(const tr of body.querySelectorAll('tr')){
+    for(const tr of body.querySelectorAll('.acol')){
       if(Math.abs(parseFloat(tr.querySelector('.h').value)-a.h)<1e-6){row=tr;break;}
     }
     HITPTS.push({x,y,h:a.h,row});
@@ -421,7 +442,7 @@ function nearestAnchor(mx,my){
   return best;
 }
 function setFactorForHour(h,f){
-  for(const tr of body.querySelectorAll('tr')){
+  for(const tr of body.querySelectorAll('.acol')){
     if(Math.abs(parseFloat(tr.querySelector('.h').value)-h)<1e-6){
       tr.querySelector('.f').value=f.toFixed(2);break;
     }
@@ -438,7 +459,7 @@ function updateAnchorRow(row,hour,factor){
 // rescale the swing around the mean: n' = 1 + (n-1)*k  (keeps daily mean, changes peak/trough)
 function rescaleAmplitude(k){
   if(!LAST)return; const norm=LAST.norm;
-  for(const tr of body.querySelectorAll('tr')){
+  for(const tr of body.querySelectorAll('.acol')){
     const fi=parseFloat(tr.querySelector('.f').value); if(isNaN(fi))continue;
     const np=1+((fi/norm)-1)*k;
     tr.querySelector('.f').value=(np<0?0:np).toFixed(4);
@@ -561,7 +582,7 @@ function fitFromCSV(){
   const M=recs.reduce((s,r)=>s+r.v,0)/recs.length;
   $('#avg').value=+M.toFixed(2);
   if($('#csvShape').checked && M>0){
-    for(const tr of body.querySelectorAll('tr')){const h=parseFloat(tr.querySelector('.h').value); if(isNaN(h))continue;
+    for(const tr of body.querySelectorAll('.acol')){const h=parseFloat(tr.querySelector('.h').value); if(isNaN(h))continue;
       const f=factorFromData(h,recs,M); if(f!=null)tr.querySelector('.f').value=+f.toFixed(3);}
   }
   if($('#csvVar').checked){
@@ -575,6 +596,20 @@ function fitFromCSV(){
   if($('#csvRange').checked){let mn=recs[0].t,mx=recs[0].t; for(const r of recs){if(r.t<mn)mn=r.t;if(r.t>mx)mx=r.t;}
     $('#start').value=toLocalInput(mn); $('#end').value=toLocalInput(mx);}
   $('#csvStatus').innerHTML='Fitted from <b>'+recs.length.toLocaleString()+'</b> rows · time: <b>'+escHtml(header[ti])+'</b> · value: <b>'+escHtml(header[vi])+'</b> · avg <b>'+M.toFixed(2)+'</b>';
+  recompute();
+}
+function resetAll(){
+  CSVDATA=null;
+  const fi=$('#csvFile'); if(fi)fi.value='';
+  $('#csvMap').style.display='none';
+  $('#csvStatus').textContent='Import observed flow (timestamp + value) to fit the average, diurnal shape, and day-to-day variation straight from data.';
+  $('#avg').value=4; $('#noise').value=3; $('#interval').value='15';
+  $('#varSwing').value=10; $('#varLevel').value=5;
+  SEED=Math.floor(Math.random()*1e9);
+  const d=new Date(); d.setSeconds(0,0); d.setMinutes(Math.floor(d.getMinutes()/15)*15);
+  $('#start').value=toLocalInput(d);
+  $('#end').value=toLocalInput(new Date(d.getTime()+14*86400000));
+  loadDefaults();
   recompute();
 }
 
@@ -602,6 +637,7 @@ function fitFromCSV(){
   $('#csvTime').addEventListener('change',fitFromCSV);
   $('#csvVal').addEventListener('change',fitFromCSV);
   ['csvShape','csvVar','csvRange'].forEach(id=>$('#'+id).addEventListener('change',fitFromCSV));
+  $('#csvReset').onclick=resetAll;
   // editable stats (commit on change)
   $('#mean').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){$('#avg').value=v;recompute();}});
   $('#peakV').addEventListener('change',e=>{const P=parseFloat(e.target.value);if(!isNaN(P)&&LAST&&LAST.avg)setPeakFactor(P/LAST.avg);});
@@ -639,7 +675,7 @@ function fitFromCSV(){
       let hr=Math.round(((mx-C.padL)/C.plotW*24)*4)/4; // snap to 15 min
       const cur=parseFloat(DRAG.row.querySelector('.h').value);
       let left=0,right=24;                              // don't cross neighbours
-      for(const tr of body.querySelectorAll('tr')){
+      for(const tr of body.querySelectorAll('.acol')){
         if(tr===DRAG.row)continue;
         const hh=parseFloat(tr.querySelector('.h').value); if(isNaN(hh))continue;
         if(hh<cur && hh>left)left=hh;
@@ -650,9 +686,32 @@ function fitFromCSV(){
     }
     pend={row:DRAG.row,hour:newHour,factor:f}; if(!raf)raf=requestAnimationFrame(flush);
   });
-  const endDrag=()=>{DRAG=null;cv.style.cursor='default';};
+  const endDrag=()=>{DRAG=null;cv.style.cursor='default';sortAnchorRows();};
   cv.addEventListener('pointerup',endDrag);
   cv.addEventListener('pointercancel',endDrag);
+  // right-click: on an anchor → delete it; on empty space → add one
+  cv.addEventListener('contextmenu',e=>{
+    const C=CHART; if(!C||C.plotW==null)return;
+    const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+    const hit=nearestAnchor(mx,my);
+    if(hit&&hit.row){                                  // delete (keep the 0 and 24 endpoints)
+      e.preventDefault();
+      const h0=parseFloat(hit.row.querySelector('.h').value);
+      if(h0<=1e-6||h0>=24-1e-6)return;
+      if(body.querySelectorAll('.acol').length<=2)return;   // always keep at least two anchors
+      hit.row.remove(); sortAnchorRows(); recompute(); return;
+    }
+    if(mx<C.padL-2||mx>C.padL+C.plotW+2||my<C.padT-2||my>C.padT+C.plotH+2)return;
+    e.preventDefault();
+    let hr=Math.round(((mx-C.padL)/C.plotW*24)*4)/4; hr=Math.max(0,Math.min(24,hr));
+    let val=C.vmin+(C.padT+C.plotH-my)/C.plotH*(C.vmax-C.vmin); if(val<0)val=0;
+    let f=C.avg?val*C.norm/C.avg:1; f=Math.max(0,Math.min(f,99));
+    let found=null;
+    for(const tr of body.querySelectorAll('.acol')){if(Math.abs(parseFloat(tr.querySelector('.h').value)-hr)<1e-6){found=tr;break;}}
+    if(found)found.querySelector('.f').value=f.toFixed(2);
+    else addAnchorRow(hr,+f.toFixed(2));
+    sortAnchorRows(); recompute();
+  });
 
   window.addEventListener('resize',()=>LAST&&drawChart(LAST.A,LAST.avg,LAST.norm));
   recompute();
