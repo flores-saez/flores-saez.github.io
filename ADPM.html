@@ -146,13 +146,22 @@
             <div class="field"><label>Time column</label><select id="csvTime"></select></div>
             <div class="field"><label>Value column</label><select id="csvVal"></select></div>
           </div>
+          <div class="row2">
+            <div class="field"><label>Drive mode</label><select id="csvMode">
+              <option value="off">Off</option>
+              <option value="daily">Daily level</option>
+              <option value="peaks" selected>Peaks &amp; excursions</option>
+            </select></div>
+            <div class="field"><label>Peak response ×</label><input id="csvGamma" type="number" step="0.1" value="1"></div>
+          </div>
           <div class="checks">
-            <label><input type="checkbox" id="csvShape" checked>Fit diurnal shape</label>
-            <label><input type="checkbox" id="csvVar" checked>Estimate day variation</label>
             <label><input type="checkbox" id="csvRange" checked>Match date range</label>
+            <label><input type="checkbox" id="csvVar" checked>Estimate day variation (when driving off)</label>
+            <label><input type="checkbox" id="csvShape">Also overwrite diurnal shape</label>
+            <label><input type="checkbox" id="csvAvg">Also set average from data</label>
           </div>
         </div>
-        <div class="hint" id="csvStatus">Import observed flow (timestamp + value) to fit the average, diurnal shape, and day-to-day variation straight from data.</div>
+        <div class="hint" id="csvStatus">Import a driver variable (e.g. depth/level) to shape the generated series. <b>Peaks & excursions</b> injects rain spikes above the driver's normal level while holding your diurnal shape; <b>Daily level</b> follows daily averages. Lower <b>Peak response</b> to damp (velocity usually rises less than level).</div>
       </div>
     </div>
 
@@ -172,8 +181,8 @@
             </select>
           </div>
         </div>
-        <div class="field"><label>Start</label><input id="start" type="datetime-local" lang="en-GB"></div>
-        <div class="field"><label>End</label><input id="end" type="datetime-local" lang="en-GB"></div>
+        <div class="field"><label>Start</label><input id="start" type="text" placeholder="MM/DD/YY HH:MM:SS"></div>
+        <div class="field"><label>End</label><input id="end" type="text" placeholder="MM/DD/YY HH:MM:SS"></div>
       </div>
     </div>
 
@@ -223,6 +232,15 @@
     </div>
 
     <div class="card">
+      <h2>Full series preview</h2>
+      <div class="legend">
+        <span><i style="background:var(--curve)"></i>Generated output</span>
+        <span id="impLegend" style="display:none"><i style="background:var(--marker);opacity:.6"></i>Imported driver (scaled)</span>
+      </div>
+      <div class="chartwrap"><canvas id="preview" height="240"></canvas></div>
+    </div>
+
+    <div class="card">
       <h2>Max &amp; Min</h2>
       <div class="body">
         <div class="anchorWrap">
@@ -240,7 +258,6 @@
 </div>
 
 <footer>
-  Vibe Coded by Alonso :)
 </footer>
 
 <script>
@@ -252,6 +269,14 @@ const $ = s => document.querySelector(s);
 const body = $('#anchorBody');
 let DRAG=null, HITPTS=[], CHART={};   // chart-drag state
 let SEED=Math.floor(Math.random()*1e9);
+let MATCHLEVELS=null, IMPORTEDSERIES=null, EXCUR=null;   // per-day levels, raw series, per-time excursion
+const dayKeyOf=t=>t.getFullYear()+'-'+t.getMonth()+'-'+t.getDate();
+function excAt(ms){                                       // linear-interp level excursion; 1 outside range
+  const A=EXCUR; if(!A||!A.length)return 1;
+  if(ms<=A[0].t)return A[0].e; if(ms>=A[A.length-1].t)return A[A.length-1].e;
+  let lo=0,hi=A.length-1; while(hi-lo>1){const m=(lo+hi)>>1; if(A[m].t<=ms)lo=m;else hi=m;}
+  const a=A[lo],b=A[hi]; return a.e+(b.e-a.e)*((ms-a.t)/(b.t-a.t));
+}
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
 function addAnchorRow(h='',f=''){
@@ -306,8 +331,8 @@ function buildSeries(){
   const S=Math.max(0,parseFloat($('#varSwing').value)||0)/100;
   const L=Math.max(0,parseFloat($('#varLevel').value)||0)/100;
   const step=parseInt($('#interval').value,10);
-  const start=$('#start').value?new Date($('#start').value):new Date();
-  let end=$('#end').value?new Date($('#end').value):new Date(start.getTime()+14*86400000);
+  const start=parseDT($('#start').value)||new Date();
+  let end=parseDT($('#end').value)||new Date(start.getTime()+14*86400000);
   const A=getAnchors();
   const norm=normConst(A);
   const stepMs=step*60000;
@@ -315,10 +340,15 @@ function buildSeries(){
   let capped=false; const CAP=200000;
   if(total<1)total=1;
   if(total>CAP){total=CAP;capped=true;}
-  // one stable random swing/level per calendar day (seeded so it survives recomputes)
+  // drive mode from import: 'daily' = follow daily averages, 'peaks' = inject level excursions, else random
+  const mode = ($('#csvMode')&&$('#csvMode').value)||'off';
+  const gamma = Math.max(0,parseFloat($('#csvGamma')&&$('#csvGamma').value)||1);
+  const dailyOn = mode==='daily' && MATCHLEVELS;
+  const peaksOn = mode==='peaks' && EXCUR && EXCUR.length;
   const d0=new Date(start.getFullYear(),start.getMonth(),start.getDate()).getTime();
   const dayCache={};
   const dayMult=t=>{
+    if(dailyOn){const lv=MATCHLEVELS[dayKeyOf(t)]; if(lv!=null)return {s:1,l:lv};}
     const ds=new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();
     const di=Math.round((ds-d0)/86400000);
     if(!(di in dayCache)){
@@ -331,9 +361,10 @@ function buildSeries(){
   for(let i=0;i<total;i++){
     const t=new Date(start.getTime()+i*stepMs);
     const hr=t.getHours()+t.getMinutes()/60+t.getSeconds()/3600;
-    const n=norm?factorAt(hr,A)/norm:0;            // daily-mean 1
-    const {s,l}=dayMult(t);
-    const pattern=avg*l*(1+(n-1)*s);               // level shifts whole day; swing scales the deviation
+    const n=norm?factorAt(hr,A)/norm:0;            // daily-mean 1 (velocity's own shape)
+    let pattern;
+    if(peaksOn){const a=1+gamma*Math.max(0,excAt(t.getTime())-1); pattern=avg*n*a;}  // shape held, peaks injected
+    else{const {s,l}=dayMult(t); pattern=avg*l*(1+(n-1)*s);}
     const out=pattern*(1+(Math.random()*2-1)*noise/100);
     rows.push({t,hr,pattern,out});
   }
@@ -345,23 +376,65 @@ let LAST=null;
 function recompute(){
   const data=buildSeries(); LAST=data;
   const {rows,avg,A,norm}=data;
-  // stats from exact pattern (no noise)
-  const mean=rows.reduce((s,r)=>s+r.pattern,0)/rows.length;
-  let pk=rows[0],tr=rows[0];
-  for(const r of rows){if(r.pattern>pk.pattern)pk=r;if(r.pattern<tr.pattern)tr=r;}
   const fmtHr=h=>{const H=Math.floor(h)%24,M=Math.round((h-Math.floor(h))*60);
     return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0');};
-  const peakFactor=avg?pk.pattern/avg:1;
-  LAST.mean=mean; LAST.peakVal=pk.pattern; LAST.troughVal=tr.pattern; LAST.peakFactor=peakFactor;
-  setStat('#mean',mean.toFixed(2));
-  setStat('#peakV',pk.pattern.toFixed(2));
-  setStat('#troughV',tr.pattern.toFixed(2));
+  // editable stats come from the BASE diurnal profile (shape only), so Max/Min/Max-factor keep
+  // controlling amplitude even when peaks/daily driving inflate the actual series
+  let bMax=-Infinity,bMin=Infinity,bMaxH=0,bMinH=0;
+  for(let m=0;m<1440;m+=15){const h=m/60,val=avg*(norm?factorAt(h,A)/norm:0);
+    if(val>bMax){bMax=val;bMaxH=h;} if(val<bMin){bMin=val;bMinH=h;}}
+  const peakFactor=avg?bMax/avg:1;
+  LAST.mean=avg; LAST.peakVal=bMax; LAST.troughVal=bMin; LAST.peakFactor=peakFactor;
+  setStat('#mean',avg.toFixed(2));
+  setStat('#peakV',bMax.toFixed(2));
+  setStat('#troughV',bMin.toFixed(2));
   setStat('#pfV',peakFactor.toFixed(2));
-  $('#peakAt').textContent='@ '+fmtHr(pk.hr);
-  $('#troughAt').textContent='@ '+fmtHr(tr.hr);
+  $('#peakAt').textContent='@ '+fmtHr(bMaxH);
+  $('#troughAt').textContent='@ '+fmtHr(bMinH);
+  // actual series peak (incl. driving) surfaced in the row info
+  let sMax=rows.length?rows[0].pattern:0; for(const r of rows)if(r.pattern>sMax)sMax=r.pattern;
+  const driving=$('#csvMode')&&$('#csvMode').value!=='off'&&(EXCUR||MATCHLEVELS);
   $('#rowinfo').textContent=rows.length+' rows · '+data.step+'-min · '+data.spanDays.toFixed(2)+' d'
+    +(driving?' · series peak '+sMax.toFixed(2):'')
     +(data.capped?' · capped at 200k (move End in)':'');
   drawChart(A,avg,norm);
+  drawPreview();
+}
+function drawPreview(){
+  const cv=$('#preview'); if(!cv)return;
+  const dpr=window.devicePixelRatio||1;
+  const CS=getComputedStyle(document.body), cc=n=>CS.getPropertyValue(n).trim();
+  const W=cv.clientWidth, H=240;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
+  const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
+  c.font='11px "IBM Plex Mono"';
+  if(!LAST||!LAST.rows||!LAST.rows.length){c.fillStyle=cc('--dim');c.textAlign='center';c.textBaseline='middle';c.fillText('No data.',W/2,H/2);return;}
+  const rows=LAST.rows, t0=rows[0].t.getTime(), t1=rows[rows.length-1].t.getTime(), span=Math.max(1,t1-t0);
+  const padL=46,padR=14,padT=14,padB=28,plotW=W-padL-padR,plotH=H-padT-padB;
+  const X=t=>padL+((t-t0)/span)*plotW;
+  // value range across generated output and any imported overlay in range
+  let vmax=-Infinity,vmin=Infinity;
+  for(const r of rows){if(r.out>vmax)vmax=r.out;if(r.out<vmin)vmin=r.out;}
+  const showImp = IMPORTEDSERIES && $('#csvMode') && $('#csvMode').value!=='off';
+  if(showImp)for(const p of IMPORTEDSERIES){if(p.t>=t0&&p.t<=t1){const v=p.r*LAST.avg;if(v>vmax)vmax=v;if(v<vmin)vmin=v;}}
+  vmin=Math.min(vmin,0); const vpad=(vmax-vmin)*0.08||1; vmax+=vpad;
+  const Y=v=>padT+plotH-((v-vmin)/(vmax-vmin))*plotH;
+  // grid + y ticks
+  c.strokeStyle=cc('--grid');c.fillStyle=cc('--dim');c.lineWidth=1;c.textBaseline='middle';c.textAlign='right';
+  for(let i=0;i<=4;i++){const v=vmin+(vmax-vmin)*i/4,y=Y(v);c.beginPath();c.moveTo(padL,y);c.lineTo(W-padR,y);c.stroke();c.fillText(v.toFixed(1),padL-7,y);}
+  // x day ticks
+  c.textAlign='center';c.textBaseline='top';
+  for(let i=0;i<=6;i++){const tt=t0+span*i/6,x=X(tt),d=new Date(tt);
+    c.strokeStyle=cc('--gridv');c.beginPath();c.moveTo(x,padT);c.lineTo(x,padT+plotH);c.stroke();
+    c.fillStyle=cc('--dim');c.fillText((d.getMonth()+1)+'/'+d.getDate(),x,padT+plotH+6);}
+  // imported driver overlay (scaled to generated average)
+  if(showImp){c.beginPath();let started=false;
+    for(const p of IMPORTEDSERIES){if(p.t<t0||p.t>t1||!isFinite(p.r)){started=false;continue;}const x=X(p.t),y=Y(p.r*LAST.avg);if(!started){c.moveTo(x,y);started=true;}else c.lineTo(x,y);}
+    c.lineWidth=1.3;c.strokeStyle=cc('--marker');c.globalAlpha=0.55;c.stroke();c.globalAlpha=1;}
+  // generated output
+  c.beginPath();
+  rows.forEach((r,i)=>{const x=X(r.t.getTime()),y=Y(r.out);i?c.lineTo(x,y):c.moveTo(x,y);});
+  c.lineWidth=1.4;c.strokeStyle=cc('--curve');c.stroke();
 }
 
 function drawChart(A,avg,norm){
@@ -527,7 +600,16 @@ $('#copyOut').onclick=function(){copyText(buildTSV(true)).then(()=>flash(this,'�
 
 // ---- Model from data (CSV) ----
 let CSVDATA=null;
-function toLocalInput(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+function toLocalInput(d){const p=n=>String(n).padStart(2,'0');return p(d.getMonth()+1)+'/'+p(d.getDate())+'/'+String(d.getFullYear()).slice(-2)+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+function parseDT(s){
+  if(s==null)return null; s=String(s).trim(); if(!s)return null;
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m){let yr=+m[3]; if(yr<100)yr+=2000;
+    const d=new Date(yr,(+m[1])-1,+m[2],m[4]?+m[4]:0,m[5]?+m[5]:0,m[6]?+m[6]:0);
+    return isNaN(d)?null:d;}
+  let d=new Date(s); if(!isNaN(d))return d;
+  d=new Date(s.replace(' ','T')); return isNaN(d)?null:d;
+}
 function escHtml(s){return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
 function parseDate(s){
   if(s==null)return null; s=String(s).trim(); if(!s)return null;
@@ -577,7 +659,7 @@ function fitFromCSV(){
     if(t&&raw!=null&&raw!==''&&isFinite(v))recs.push({t,v,hr:t.getHours()+t.getMinutes()/60+t.getSeconds()/3600});}
   if(recs.length<2){$('#csvStatus').textContent='Could not read enough timestamp + value rows — try different columns.';return;}
   const M=recs.reduce((s,r)=>s+r.v,0)/recs.length;
-  $('#avg').value=+M.toFixed(2);
+  if($('#csvAvg').checked) $('#avg').value=+M.toFixed(2);
   if($('#csvShape').checked && M>0){
     for(const tr of body.querySelectorAll('.acol')){const h=parseFloat(tr.querySelector('.h').value); if(isNaN(h))continue;
       const f=factorFromData(h,recs,M); if(f!=null)tr.querySelector('.f').value=+f.toFixed(3);}
@@ -592,7 +674,17 @@ function fitFromCSV(){
   }
   if($('#csvRange').checked){let mn=recs[0].t,mx=recs[0].t; for(const r of recs){if(r.t<mn)mn=r.t;if(r.t>mx)mx=r.t;}
     $('#start').value=toLocalInput(mn); $('#end').value=toLocalInput(mx);}
-  $('#csvStatus').innerHTML='Fitted from <b>'+recs.length.toLocaleString()+'</b> rows · time: <b>'+escHtml(header[ti])+'</b> · value: <b>'+escHtml(header[vi])+'</b> · avg <b>'+M.toFixed(2)+'</b>';
+  // per-day level map (day mean / overall mean) — dimensionless, so a level/depth import can drive velocity
+  {const byDay={}; recs.forEach(r=>{const k=dayKeyOf(r.t);(byDay[k]=byDay[k]||[]).push(r.v);});
+   MATCHLEVELS={}; for(const k in byDay){const a=byDay[k]; MATCHLEVELS[k]=(a.reduce((s,x)=>s+x,0)/a.length)/M;}}
+  // excursion series: driver vs its own per-hour robust baseline (P70) so only above-normal peaks stand out
+  {const P=0.70, bins={};
+   recs.forEach(r=>{const h=Math.round(r.hr)%24;(bins[h]=bins[h]||[]).push(r.v);});
+   const base={}; for(const h in bins){const a=bins[h].slice().sort((x,y)=>x-y); base[h]=a[Math.floor(a.length*P)]||M;}
+   EXCUR=recs.map(r=>{const b=base[Math.round(r.hr)%24]||M; return {t:r.t.getTime(), e:b>0?r.v/b:1};}).sort((a,b)=>a.t-b.t);}
+  IMPORTEDSERIES=recs.map(r=>({t:r.t.getTime(),r:r.v/M})).sort((a,b)=>a.t-b.t);   // ratio to its own mean
+  $('#impLegend').style.display=($('#csvMode').value!=='off')?'':'none';
+  $('#csvStatus').innerHTML='Driving <b>'+($('#csvMode').value==='peaks'?'peaks':$('#csvMode').value==='daily'?'daily level':'nothing')+'</b> from <b>'+escHtml(header[vi])+'</b> · <b>'+recs.length.toLocaleString()+'</b> rows'+($('#csvShape').checked?' · shape fitted':'')+($('#csvAvg').checked?' · avg set':'');
   recompute();
 }
 function resetAll(){
@@ -602,22 +694,28 @@ function resetAll(){
   $('#csvStatus').textContent='Import observed flow (timestamp + value) to fit the average, diurnal shape, and day-to-day variation straight from data.';
   $('#avg').value=4; $('#noise').value=3; $('#interval').value='15';
   $('#varSwing').value=10; $('#varLevel').value=5;
+  MATCHLEVELS=null; IMPORTEDSERIES=null; EXCUR=null; if($('#impLegend'))$('#impLegend').style.display='none';
+  if($('#csvMode'))$('#csvMode').value='peaks'; if($('#csvGamma'))$('#csvGamma').value=1;
+  ['csvRange','csvVar'].forEach(id=>{if($('#'+id))$('#'+id).checked=true;});
+  ['csvShape','csvAvg'].forEach(id=>{if($('#'+id))$('#'+id).checked=false;});
   SEED=Math.floor(Math.random()*1e9);
-  const d=new Date(); d.setSeconds(0,0); d.setMinutes(Math.floor(d.getMinutes()/15)*15);
-  $('#start').value=toLocalInput(d);
-  $('#end').value=toLocalInput(new Date(d.getTime()+14*86400000));
+  const mid=new Date(); mid.setHours(0,0,0,0);   // midnight of the current day
+  $('#end').value=toLocalInput(mid);
+  $('#start').value=toLocalInput(new Date(mid.getTime()-14*86400000));
   loadDefaults();
   recompute();
 }
 
 // init
 (function(){
-  const toLocal=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
-  const d=new Date();d.setSeconds(0,0);d.setMinutes(Math.floor(d.getMinutes()/15)*15);
-  $('#start').value=toLocal(d);
-  $('#end').value=toLocal(new Date(d.getTime()+14*86400000));
+  const mid=new Date(); mid.setHours(0,0,0,0);    // midnight of the current day
+  $('#end').value=toLocalInput(mid);
+  $('#start').value=toLocalInput(new Date(mid.getTime()-14*86400000));
   loadDefaults();
-  ['avg','noise','interval','start','end','varSwing','varLevel'].forEach(id=>$('#'+id).addEventListener('input',recompute));
+  ['avg','noise','interval','varSwing','varLevel'].forEach(id=>$('#'+id).addEventListener('input',recompute));
+  ['start','end'].forEach(id=>$('#'+id).addEventListener('change',recompute));
+  $('#csvMode').addEventListener('change',()=>{$('#impLegend').style.display=(IMPORTEDSERIES&&$('#csvMode').value!=='off')?'':'none';recompute();});
+  $('#csvGamma').addEventListener('input',recompute);
   $('#reseed').onclick=()=>{SEED=Math.floor(Math.random()*1e9);recompute();};
   // CSV import / model-from-data
   $('#csvFile').addEventListener('change',e=>{
@@ -633,7 +731,7 @@ function resetAll(){
   });
   $('#csvTime').addEventListener('change',fitFromCSV);
   $('#csvVal').addEventListener('change',fitFromCSV);
-  ['csvShape','csvVar','csvRange'].forEach(id=>$('#'+id).addEventListener('change',fitFromCSV));
+  ['csvShape','csvVar','csvRange','csvAvg'].forEach(id=>$('#'+id).addEventListener('change',fitFromCSV));
   $('#csvReset').onclick=resetAll;
   // editable stats (commit on change)
   $('#mean').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){$('#avg').value=v;recompute();}});
@@ -646,6 +744,7 @@ function resetAll(){
     const light=document.body.classList.toggle('light');
     this.textContent=light?'\u263e Dark':'\u2600 Light';
     if(LAST)drawChart(LAST.A,LAST.avg,LAST.norm);
+    drawPreview();
   };
 
   // --- drag anchor dots: up/down = factor, left/right = hour (15-min snap) ---
@@ -710,7 +809,7 @@ function resetAll(){
     sortAnchorRows(); recompute();
   });
 
-  window.addEventListener('resize',()=>LAST&&drawChart(LAST.A,LAST.avg,LAST.norm));
+  window.addEventListener('resize',()=>{if(LAST){drawChart(LAST.A,LAST.avg,LAST.norm);drawPreview();}});
   recompute();
 })();
 </script>
