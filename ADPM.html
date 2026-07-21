@@ -146,14 +146,11 @@
             <div class="field"><label>Time column</label><select id="csvTime"></select></div>
             <div class="field"><label>Value column</label><select id="csvVal"></select></div>
           </div>
-          <div class="row2">
-            <div class="field"><label>Drive mode</label><select id="csvMode">
-              <option value="off">Off</option>
-              <option value="daily">Daily level</option>
-              <option value="peaks" selected>Peaks &amp; excursions</option>
-            </select></div>
-            <div class="field"><label>Peak response ×</label><input id="csvGamma" type="number" step="0.1" value="1"></div>
+          <div class="checks">
+            <label><input type="checkbox" id="csvPeaks" checked>Drive peaks &amp; excursions</label>
+            <label><input type="checkbox" id="csvDaily">Drive daily level</label>
           </div>
+          <div class="field" style="margin-top:10px"><label>Peak response ×</label><input id="csvGamma" type="number" step="0.1" value="1"></div>
           <div class="checks">
             <label><input type="checkbox" id="csvRange" checked>Match date range</label>
             <label><input type="checkbox" id="csvVar" checked>Estimate day variation (when driving off)</label>
@@ -168,11 +165,11 @@
     <div class="card">
       <h2>Controls</h2>
       <div class="body">
-        <div class="field">
-          <label>Daily Average Flow</label>
-          <input id="avg" type="number" step="0.01" value="4">
-          <div class="hint">The whole series rescales so its mean equals this.</div>
+        <div class="row2">
+          <div class="field"><label>Daily Average Flow</label><input id="avg" type="number" step="0.01" value="4"></div>
+          <div class="field"><label>Max factor</label><input id="pfCtrl" type="number" step="0.01" value="1.3"></div>
         </div>
+        <div class="hint">Average rescales the series to that mean; Max factor sets the diurnal peak-to-mean ratio (amplitude).</div>
         <div class="row2">
           <div class="field"><label>Noise %</label><input id="noise" type="number" step="0.5" value="3"></div>
           <div class="field"><label>Interval (min)</label>
@@ -340,15 +337,15 @@ function buildSeries(){
   let capped=false; const CAP=200000;
   if(total<1)total=1;
   if(total>CAP){total=CAP;capped=true;}
-  // drive mode from import: 'daily' = follow daily averages, 'peaks' = inject level excursions, else random
-  const mode = ($('#csvMode')&&$('#csvMode').value)||'off';
+  // drive from import: daily level and/or peak excursions (independent toggles)
   const gamma = Math.max(0,parseFloat($('#csvGamma')&&$('#csvGamma').value)||1);
-  const dailyOn = mode==='daily' && MATCHLEVELS;
-  const peaksOn = mode==='peaks' && EXCUR && EXCUR.length;
+  const dailyOn = $('#csvDaily') && $('#csvDaily').checked && MATCHLEVELS;
+  const peaksOn = $('#csvPeaks') && $('#csvPeaks').checked && EXCUR && EXCUR.length;
   const d0=new Date(start.getFullYear(),start.getMonth(),start.getDate()).getTime();
   const dayCache={};
   const dayMult=t=>{
     if(dailyOn){const lv=MATCHLEVELS[dayKeyOf(t)]; if(lv!=null)return {s:1,l:lv};}
+    if(peaksOn) return {s:1,l:1};                     // peaks-only holds shape between events
     const ds=new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();
     const di=Math.round((ds-d0)/86400000);
     if(!(di in dayCache)){
@@ -361,10 +358,10 @@ function buildSeries(){
   for(let i=0;i<total;i++){
     const t=new Date(start.getTime()+i*stepMs);
     const hr=t.getHours()+t.getMinutes()/60+t.getSeconds()/3600;
-    const n=norm?factorAt(hr,A)/norm:0;            // daily-mean 1 (velocity's own shape)
-    let pattern;
-    if(peaksOn){const a=1+gamma*Math.max(0,excAt(t.getTime())-1); pattern=avg*n*a;}  // shape held, peaks injected
-    else{const {s,l}=dayMult(t); pattern=avg*l*(1+(n-1)*s);}
+    const n=norm?factorAt(hr,A)/norm:0;               // daily-mean 1 (velocity's own shape)
+    const {s,l}=dayMult(t);
+    let pattern=avg*l*(1+(n-1)*s);                     // shape × daily/random level
+    if(peaksOn){const a=1+gamma*Math.max(0,excAt(t.getTime())-1); pattern*=a;}  // inject peaks on top
     const out=pattern*(1+(Math.random()*2-1)*noise/100);
     rows.push({t,hr,pattern,out});
   }
@@ -389,11 +386,12 @@ function recompute(){
   setStat('#peakV',bMax.toFixed(2));
   setStat('#troughV',bMin.toFixed(2));
   setStat('#pfV',peakFactor.toFixed(2));
+  setStat('#pfCtrl',peakFactor.toFixed(2));
   $('#peakAt').textContent='@ '+fmtHr(bMaxH);
   $('#troughAt').textContent='@ '+fmtHr(bMinH);
   // actual series peak (incl. driving) surfaced in the row info
   let sMax=rows.length?rows[0].pattern:0; for(const r of rows)if(r.pattern>sMax)sMax=r.pattern;
-  const driving=$('#csvMode')&&$('#csvMode').value!=='off'&&(EXCUR||MATCHLEVELS);
+  const driving=(($('#csvPeaks')&&$('#csvPeaks').checked)||($('#csvDaily')&&$('#csvDaily').checked))&&(EXCUR||MATCHLEVELS);
   $('#rowinfo').textContent=rows.length+' rows · '+data.step+'-min · '+data.spanDays.toFixed(2)+' d'
     +(driving?' · series peak '+sMax.toFixed(2):'')
     +(data.capped?' · capped at 200k (move End in)':'');
@@ -415,7 +413,7 @@ function drawPreview(){
   // value range across generated output and any imported overlay in range
   let vmax=-Infinity,vmin=Infinity;
   for(const r of rows){if(r.out>vmax)vmax=r.out;if(r.out<vmin)vmin=r.out;}
-  const showImp = IMPORTEDSERIES && $('#csvMode') && $('#csvMode').value!=='off';
+  const showImp = IMPORTEDSERIES && (($('#csvPeaks')&&$('#csvPeaks').checked)||($('#csvDaily')&&$('#csvDaily').checked));
   if(showImp)for(const p of IMPORTEDSERIES){if(p.t>=t0&&p.t<=t1){const v=p.r*LAST.avg;if(v>vmax)vmax=v;if(v<vmin)vmin=v;}}
   vmin=Math.min(vmin,0); const vpad=(vmax-vmin)*0.08||1; vmax+=vpad;
   const Y=v=>padT+plotH-((v-vmin)/(vmax-vmin))*plotH;
@@ -683,8 +681,9 @@ function fitFromCSV(){
    const base={}; for(const h in bins){const a=bins[h].slice().sort((x,y)=>x-y); base[h]=a[Math.floor(a.length*P)]||M;}
    EXCUR=recs.map(r=>{const b=base[Math.round(r.hr)%24]||M; return {t:r.t.getTime(), e:b>0?r.v/b:1};}).sort((a,b)=>a.t-b.t);}
   IMPORTEDSERIES=recs.map(r=>({t:r.t.getTime(),r:r.v/M})).sort((a,b)=>a.t-b.t);   // ratio to its own mean
-  $('#impLegend').style.display=($('#csvMode').value!=='off')?'':'none';
-  $('#csvStatus').innerHTML='Driving <b>'+($('#csvMode').value==='peaks'?'peaks':$('#csvMode').value==='daily'?'daily level':'nothing')+'</b> from <b>'+escHtml(header[vi])+'</b> · <b>'+recs.length.toLocaleString()+'</b> rows'+($('#csvShape').checked?' · shape fitted':'')+($('#csvAvg').checked?' · avg set':'');
+  $('#impLegend').style.display=(($('#csvPeaks').checked)||($('#csvDaily').checked))?'':'none';
+  const drv=[]; if($('#csvPeaks').checked)drv.push('peaks'); if($('#csvDaily').checked)drv.push('daily level');
+  $('#csvStatus').innerHTML='Driving <b>'+(drv.length?drv.join(' + '):'nothing')+'</b> from <b>'+escHtml(header[vi])+'</b> · <b>'+recs.length.toLocaleString()+'</b> rows'+($('#csvShape').checked?' · shape fitted':'')+($('#csvAvg').checked?' · avg set':'');
   recompute();
 }
 function resetAll(){
@@ -695,7 +694,7 @@ function resetAll(){
   $('#avg').value=4; $('#noise').value=3; $('#interval').value='15';
   $('#varSwing').value=10; $('#varLevel').value=5;
   MATCHLEVELS=null; IMPORTEDSERIES=null; EXCUR=null; if($('#impLegend'))$('#impLegend').style.display='none';
-  if($('#csvMode'))$('#csvMode').value='peaks'; if($('#csvGamma'))$('#csvGamma').value=1;
+  if($('#csvPeaks'))$('#csvPeaks').checked=true; if($('#csvDaily'))$('#csvDaily').checked=false; if($('#csvGamma'))$('#csvGamma').value=1;
   ['csvRange','csvVar'].forEach(id=>{if($('#'+id))$('#'+id).checked=true;});
   ['csvShape','csvAvg'].forEach(id=>{if($('#'+id))$('#'+id).checked=false;});
   SEED=Math.floor(Math.random()*1e9);
@@ -714,7 +713,7 @@ function resetAll(){
   loadDefaults();
   ['avg','noise','interval','varSwing','varLevel'].forEach(id=>$('#'+id).addEventListener('input',recompute));
   ['start','end'].forEach(id=>$('#'+id).addEventListener('change',recompute));
-  $('#csvMode').addEventListener('change',()=>{$('#impLegend').style.display=(IMPORTEDSERIES&&$('#csvMode').value!=='off')?'':'none';recompute();});
+  ['csvPeaks','csvDaily'].forEach(id=>$('#'+id).addEventListener('change',()=>{$('#impLegend').style.display=(IMPORTEDSERIES&&(($('#csvPeaks').checked)||($('#csvDaily').checked)))?'':'none';recompute();}));
   $('#csvGamma').addEventListener('input',recompute);
   $('#reseed').onclick=()=>{SEED=Math.floor(Math.random()*1e9);recompute();};
   // CSV import / model-from-data
@@ -738,6 +737,7 @@ function resetAll(){
   $('#peakV').addEventListener('change',e=>{const P=parseFloat(e.target.value);if(!isNaN(P)&&LAST&&LAST.avg)setPeakFactor(P/LAST.avg);});
   $('#troughV').addEventListener('change',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&LAST)setTroughTo(v);});
   $('#pfV').addEventListener('change',e=>{const T=parseFloat(e.target.value);if(!isNaN(T)&&LAST)setPeakFactor(T);});
+  $('#pfCtrl').addEventListener('change',e=>{const T=parseFloat(e.target.value);if(!isNaN(T)&&LAST)setPeakFactor(T);});
   $('#addRow').onclick=()=>{addAnchorRow(12,1.0);recompute();};
   $('#resetRows').onclick=()=>{loadDefaults();recompute();};
   $('#themeBtn').onclick=function(){
