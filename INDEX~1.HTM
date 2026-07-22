@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSL Project Health</title>
+<style>
+  :root{ color-scheme:light; --bg:#f6f7f9; --card:#fff; --ink:#1a2230; --muted:#667085; --line:#e5e8ee; --green:#0f9d58; --red:#d92d20; --amber:#dc9a00; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:20px 18px 60px; }
+  h1{ font-size:21px; margin:0 0 2px; } .sub{ color:var(--muted); font-size:13px; margin-bottom:6px; }
+  .legend{ color:var(--muted); font-size:12px; margin-bottom:18px; }
+  .group{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:24px 0 10px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  a.card{ text-decoration:none; color:inherit; display:block; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; border-left:4px solid var(--line); transition:box-shadow .15s; }
+  a.card:hover{ box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .card.connected{ border-left-color:var(--green); } .card.flagged{ border-left-color:var(--red); } .card.await{ border-left-color:#c7cdd8; }
+  .card h3{ margin:0 0 2px; font-size:16px; } .card .code{ color:var(--muted); font-weight:500; font-size:12px; }
+  .row{ display:flex; align-items:center; justify-content:space-between; }
+  .chip{ font-size:11px; font-weight:650; padding:3px 9px; border-radius:20px; background:#eef2f7; color:var(--muted); white-space:nowrap; }
+  .chip.ok{ background:#e7f6ee; color:var(--green); } .chip.bad{ background:#fdeceb; color:var(--red); } .chip.await{ background:#f2f4f7; color:#98a2b3; }
+  .meta{ display:flex; flex-wrap:wrap; gap:10px 16px; color:var(--muted); font-size:12px; margin:10px 0 8px; } .meta b{ color:var(--ink); }
+  .note{ color:var(--muted); font-size:12px; font-style:italic; min-height:16px; }
+  .statusline{ font-size:12px; margin-top:8px; color:var(--muted); } .statusline b{ color:var(--ink); }
+  .open{ font-size:12px; margin-top:6px; color:#2563eb; }
+  #status{ padding:30px; text-align:center; color:var(--muted); }
+  .foot{ color:var(--muted); font-size:12px; margin-top:30px; border-top:1px solid var(--line); padding-top:12px; } .foot code{ background:#eef2f7; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CSL Project Health</h1>
+  <div class="sub">Flow-monitoring projects &middot; static build (reads CSVs from <code>/data</code>).</div>
+  <div class="legend">Click a project to open its detail page (level/velocity charts + per-site flags). Offline = call-in silent &gt;48h or no data &gt;48h; low battery &lt;3.5V.</div>
+  <div id="status">Loading project data&hellip;</div>
+  <div id="board"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+const OFFLINE_HOURS=48, LOW_BATT_V=3.5, WINDOW_DAYS=14;
+const PROJECTS=[
+ {code:"OR",name:"Oak Ridge TN",da:"Alonso",tz:"Eastern",cadence:"14 d",meters:11,rg:3,siteKeyRegex:"OR_\\d+",note:"Temp I&I — ends 2026-08-14",group:"Temp (active)"},
+ {code:"AR",name:"Arab AL",da:"Alonso",tz:"Central",cadence:"45 d",meters:5,rg:1,note:"Monthly Excel + annual",group:"Alonso — long-term"},
+ {code:"CL",name:"Cleveland TN",da:"Alonso",tz:"Central",cadence:"90 d",meters:27,rg:0,note:"Basin/LJA numbering; +2 CCUD",group:"Alonso — long-term"},
+ {code:"GV",name:"Goodlettsville TN",da:"Alonso",tz:"Central",cadence:"45 d",meters:8,rg:1,note:"Two billing meters",group:"Alonso — long-term"},
+ {code:"GR",name:"Greenbrier TN",da:"Alonso",tz:"Central",cadence:"45 d",meters:2,rg:1,note:"Download-only Iscos",group:"Alonso — long-term"},
+ {code:"TU",name:"Tuscaloosa AL",da:"Alonso",tz:"Central",cadence:"30 d",meters:19,rg:5,note:"Yearly Sept–Aug",group:"Alonso — long-term"},
+ {code:"COL",name:"Columbia TN",da:"Alonso",tz:"Central",cadence:"45 d",meters:12,rg:3,note:"DO-NOT-DIE sites",group:"Alonso — long-term"},
+ {code:"JA",name:"Jackson MS",da:"Will",tz:"Central",cadence:"90/180 d",meters:36,rg:4,note:"WBI interceptor + BS billing",group:"Will — long-term"},
+ {code:"FC",name:"Forsyth Co GA",da:"Will",tz:"Eastern",cadence:"30/90 d",meters:19,rg:6,note:"Eastern; quarterly visits",group:"Will — long-term"},
+ {code:"SM",name:"Smyrna TN",da:"Will",tz:"Central",cadence:"60 d",meters:12,rg:2,note:"",group:"Will — long-term"},
+ {code:"AU",name:"Auburn AL",da:"Will",tz:"Central",cadence:"60 d",meters:17,rg:2,note:"Q3 carries I&I",group:"Will — long-term"},
+ {code:"OK",name:"Okaloosa Co FL",da:"Alonso",tz:"Central",cadence:"14 d",meters:6,rg:1,note:"Ends 2026-09-01",group:"Temp (active)"},
+ {code:"USA",name:"USA AL",da:"Alonso",tz:"Central",cadence:"90 d",meters:3,rg:1,note:"Temp I&I",group:"Temp (active)"},
+ {code:"GAT",name:"Gatlinburg TN",da:"Alonso",tz:"Eastern",cadence:"90 d",meters:1,rg:1,note:"Data only",group:"Temp (active)"},
+];
+const GROUP_ORDER=["Alonso — long-term","Will — long-term","Temp (active)"];
+function siteKey(h,rx){ const dev=h.split(".")[0].trim(); if(rx){const m=dev.match(new RegExp(rx)); if(m) return m[0];}
+  const rg=dev.match(/\bRG[\s_-]?\d+\b/i); if(rg) return rg[0].toUpperCase().replace(/[\s_-]/,""); return dev; }
+function metric(h){ const a=h.split(".").slice(1).join(".").replace(/\s*\(.*?\)\s*$/,"").trim().toLowerCase();
+  if(a.startsWith("level1")||a==="level") return "level"; if(a.startsWith("velocity1")) return "velocity";
+  if(a.startsWith("local battery")) return "battery"; if(a.startsWith("call log")) return "call"; return null; }
+function summarize(text,rx){
+  const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.length); const headers=lines[0].split(",");
+  const cols={}; for(let c=1;c<headers.length;c++){ const m=metric(headers[c]); if(!m) continue; const s=siteKey(headers[c],rx); cols[s]=cols[s]||{}; if(!cols[s][m]) cols[s][m]=c; }
+  const rows=[]; for(let i=1;i<lines.length;i++){ const cells=lines[i].split(","); const t=new Date(cells[0].replace(" ","T")); if(isNaN(t)) continue; rows.push({t,cells}); }
+  if(!rows.length) return null; const latest=rows[rows.length-1].t; const cutoff=new Date(latest.getTime()-WINDOW_DAYS*864e5); const offMin=OFFLINE_HOURS*60;
+  let total=0,offline=0,lowBatt=0,flagged=0;
+  for(const s of Object.keys(cols)){ total++; const cc=cols[s]; let lastAny=null,lastCall=null,lastBatt=null;
+    for(const row of rows){ if(row.t<cutoff) continue; for(const m of ["level","velocity","battery","call"]){ const ci=cc[m]; if(ci==null) continue; const v=row.cells[ci]; if(v==null||v==="") continue;
+      if(!lastAny||row.t>lastAny) lastAny=row.t; if(m==="call"&&(!lastCall||row.t>lastCall)) lastCall=row.t; if(m==="battery") lastBatt=Number(v); } }
+    let off=false; if(cc.call!=null){ if(!lastCall||(latest-lastCall)/60000>offMin) off=true; } else if(!lastAny||(latest-lastAny)/60000>offMin) off=true;
+    let bad=false; if(off){offline++;bad=true;} if(lastBatt!==null&&lastBatt<LOW_BATT_V){lowBatt++;bad=true;} if(bad) flagged++; }
+  return {total,offline,lowBatt,flagged,latest};
+}
+function fmt(d){ if(!d) return "—"; const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+async function fetchCSV(code){ try{ const r=await fetch("data/"+code+".csv",{cache:"no-store"}); if(!r.ok) return null; const t=await r.text(); return t.indexOf("Time,")>-1?t.slice(t.indexOf("Time,")):null; }catch(e){ return null; } }
+function el(t,c,h){const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;}
+function card(p,sum,connected){
+  const flagged=sum&&sum.flagged>0;
+  const a=el("a","card "+(connected?(flagged?"flagged":"connected"):"await")); a.href="projects/"+p.code.toLowerCase()+".html";
+  const top=el("div","row"); top.appendChild(el("div",null,`<h3>${p.name}</h3><div class="code">${p.code} · ${p.da}</div>`));
+  top.appendChild(el("span","chip "+(connected?(flagged?"bad":"ok"):"await"), connected?(flagged?sum.flagged+" flagged":"all healthy"):"awaiting data")); a.appendChild(top);
+  a.appendChild(el("div","meta",`<span>${p.tz}</span><span>Meters <b>${p.meters}</b></span><span>RG <b>${p.rg}</b></span><span>Cal <b>${p.cadence}</b></span>`));
+  if(p.note) a.appendChild(el("div","note",p.note));
+  if(connected&&sum){ a.appendChild(el("div","statusline",`<b>${sum.total-sum.flagged}/${sum.total}</b> sites healthy · ${sum.offline} offline · ${sum.lowBatt} low-batt · as of ${fmt(sum.latest)}`)); }
+  else { a.appendChild(el("div","statusline",`Add <code>data/${p.code}.csv</code> to populate.`)); }
+  a.appendChild(el("div","open","Open "+p.name+" →"));
+  return a;
+}
+async function main(){
+  const board=document.getElementById("board"); board.innerHTML=""; document.getElementById("status").style.display="none";
+  let connectedCount=0;
+  for(const g of GROUP_ORDER){
+    const inGroup=PROJECTS.filter(p=>p.group===g); if(!inGroup.length) continue;
+    board.appendChild(el("div","group",g)); const grid=el("div","grid"); board.appendChild(grid);
+    for(const p of inGroup){ const text=await fetchCSV(p.code); let sum=null,connected=false;
+      if(text){ connected=true; connectedCount++; sum=summarize(text,p.siteKeyRegex); }
+      grid.appendChild(card(p,sum,connected)); }
+  }
+  document.getElementById("foot").innerHTML=`${connectedCount} of ${PROJECTS.length} projects have data · drop each project's latest export into <code>data/&lt;CODE&gt;.csv</code> (see README). Static build — served over http/https (GitHub Pages).`;
+}
+main();
+</script>
+</body>
+</html>

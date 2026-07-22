@@ -1,0 +1,234 @@
+<!-- Per-project site-health page (template). Auto-discovers <CODE>_CSV.csv in the CSV Export folder. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root{ color-scheme: light; --bg:#f6f7f9; --card:#fff; --ink:#1a2230; --muted:#667085;
+         --line:#e5e8ee; --blue:#2563eb; --orange:#ea7317; --green:#0f9d58; --red:#d92d20; --amber:#dc9a00; --chip:#eef2f7; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:20px 18px 60px; }
+  h1{ font-size:20px; margin:0 0 2px; }
+  .sub{ color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .cards{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:22px; }
+  .stat{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; min-width:120px; flex:1; }
+  .stat .n{ font-size:24px; font-weight:650; } .stat .l{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .stat.bad .n{ color:var(--red); } .stat.warn .n{ color:var(--amber); } .stat.ok .n{ color:var(--green); }
+  .section-title{ font-size:13px; font-weight:650; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:26px 0 10px; }
+  .attn{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--red); border-radius:8px; padding:12px 14px; margin-bottom:8px; }
+  .attn.warn{ border-left-color:var(--amber); } .attn h3{ margin:0 0 4px; font-size:14px; } .attn ul{ margin:4px 0 0; padding-left:18px; color:#475467; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; }
+  .site{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .site header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .site h3{ margin:0; font-size:15px; } .chip{ font-size:11px; font-weight:650; padding:3px 8px; border-radius:20px; background:var(--chip); }
+  .chip.ok{ background:#e7f6ee; color:var(--green); } .chip.bad{ background:#fdeceb; color:var(--red); } .chip.warn{ background:#fdf4e3; color:var(--amber); }
+  .metrics{ display:flex; gap:14px; font-size:12px; color:var(--muted); margin-bottom:8px; flex-wrap:wrap; } .metrics b{ color:var(--ink); font-weight:600; }
+  .flagline{ font-size:12px; color:var(--red); margin-bottom:6px; } .flagline.warn{ color:var(--amber); }
+  .chartbox{ position:relative; height:160px; }
+  .gauges{ display:flex; flex-wrap:wrap; gap:10px; } .gauge{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; min-width:150px; }
+  .gauge .g-name{ font-weight:600; } .gauge .g-batt{ font-size:20px; font-weight:650; }
+  #status{ padding:40px; text-align:center; color:var(--muted); } #status.err{ color:var(--red); }
+  .await{ background:var(--card); border:1px dashed #c7cdd8; border-radius:12px; padding:26px; text-align:center; }
+  .await h2{ margin:0 0 6px; font-size:17px; } .await .meta{ display:flex; flex-wrap:wrap; gap:16px; justify-content:center; margin:14px 0; color:var(--muted); font-size:13px; }
+  .await .meta b{ color:var(--ink); }
+  .foot{ color:var(--muted); font-size:12px; margin-top:30px; border-top:1px solid var(--line); padding-top:12px; }
+  code{ background:#eef2f7; padding:1px 5px; border-radius:4px; font-size:12px; }
+</style>
+
+<div class="wrap">
+  <h1 id="title">Site Health</h1>
+  <div class="sub" id="subtitle">Loading…</div>
+  <div id="status">Looking for this project's export in Google Drive…</div>
+  <div id="app" style="display:none">
+    <div class="cards" id="cards"></div>
+    <div id="attnwrap"></div>
+    <div class="section-title">Sites — level &amp; velocity (trailing window)</div>
+    <div class="grid" id="grid"></div>
+    <div class="section-title" id="gaugettl">Rain gauges &amp; battery</div>
+    <div class="gauges" id="gauges"></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<script>
+/* ===== PROJECT CONFIG (stamped per project) ===== */
+const PROJECT = /*__PROJECT_CONFIG__*/{"code":"GV","name":"Goodlettsville TN","da":"Alonso","tz":"Central","type":"Monthly","cadence":"45 d","meters":8,"rg":1,"match":["GV","Goodlettsville","Goodlettsville TN"],"note":"Two billing meters (3 blinds/visit)"}/*__END__*/;
+
+const DRIVE = "mcp__9bc7a470-b68c-4f78-909b-8a899b29793d";
+const CSV_PARENT = "1JJ3YfttoIwYtDRBwvEIrX1t_PgNKq9CW";   // the "CSV Export" folder
+
+const CONFIG = { WINDOW_DAYS:14, OFFLINE_HOURS:48, LOW_BATT_V:3.5, STUCK_N:12, IQR_MULT:3, MAX_CHART_POINTS:350 };
+
+/* ===== analysis engine ===== */
+function parseCSV(text){
+  const lines=text.replace(/\r/g,"").split("\n").filter(l=>l.length);
+  const headers=lines[0].split(","); const rows=[];
+  for(let i=1;i<lines.length;i++){ const cells=lines[i].split(",");
+    const t=new Date(cells[0].replace(" ","T")); if(isNaN(t)) continue;
+    const values={}; for(let c=1;c<headers.length;c++){ const raw=cells[c];
+      values[headers[c]]=(raw===undefined||raw==="")?null:Number(raw); } rows.push({t,values}); }
+  return {headers,rows};
+}
+function siteKeyFromHeader(h){
+  const device=h.split(".")[0].trim();
+  if(PROJECT.siteKeyRegex){ const m=device.match(new RegExp(PROJECT.siteKeyRegex)); if(m) return m[0]; }
+  const rg=device.match(/\bRG[\s_-]?\d+\b/i); if(rg) return rg[0].toUpperCase().replace(/[\s_-]/,"");
+  return device;
+}
+function metricFromHeader(h){ const after=h.split(".").slice(1).join(".");
+  const n=after.replace(/\s*\(.*?\)\s*$/,"").trim().toLowerCase();
+  if(n.startsWith("level1")||n==="level") return "level";
+  if(n.startsWith("velocity1")) return "velocity";
+  if(n.startsWith("raw lev")||n.startsWith("raw lvl")) return "raw";
+  if(n.startsWith("local battery")) return "battery";
+  if(n.startsWith("call log")) return "call"; return null; }
+function buildSites(parsed){
+  const {headers,rows}=parsed; const map={};
+  for(let c=1;c<headers.length;c++){ const h=headers[c]; const site=siteKeyFromHeader(h); const metric=metricFromHeader(h);
+    if(!metric) continue; map[site]=map[site]||{}; if(!map[site][metric]) map[site][metric]=h; }
+  const latestTs=rows.length?rows[rows.length-1].t:null;
+  const cutoff=latestTs?new Date(latestTs.getTime()-CONFIG.WINDOW_DAYS*864e5):null;
+  const sites={};
+  for(const site of Object.keys(map)){ const series={level:[],velocity:[],battery:[],call:[]};
+    for(const row of rows){ if(cutoff&&row.t<cutoff) continue;
+      for(const metric of ["level","velocity","battery","call"]){ const col=map[site][metric]; if(!col) continue;
+        const v=row.values[col]; if(v===null||v===undefined||isNaN(v)) continue; series[metric].push({t:row.t,v}); } }
+    sites[site]=series; }
+  return {sites,latestTs,cutoff,map};
+}
+function quantile(s,q){ if(!s.length) return null; const pos=(s.length-1)*q; const b=Math.floor(pos),r=pos-b;
+  return s[b+1]!==undefined?s[b]+r*(s[b+1]-s[b]):s[b]; }
+function humanMins(m){ if(m<90) return Math.round(m)+" min"; if(m<1440) return (m/60).toFixed(1)+" hr"; return (m/1440).toFixed(1)+" days"; }
+function fmt(d){ if(!d) return "—"; const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function analyseSite(site,series,latestTs,meta){
+  const flags=[]; const level=series.level,vel=series.velocity,batt=series.battery,call=series.call;
+  const hasLevel=meta.hasLevel, hasCall=meta.hasCall; const kind=hasLevel?"flow":"gauge";
+  const offMin=CONFIG.OFFLINE_HOURS*60;
+  const allTs=[...level,...vel,...batt,...call].map(p=>p.t);
+  const lastAny=allTs.length?new Date(Math.max.apply(null,allTs)):null;
+  const anyAgeMin=lastAny?(latestTs-lastAny)/60000:null;
+  const callAgeMin=(hasCall&&call.length)?(latestTs-call[call.length-1].t)/60000:null;
+  if(hasCall&&(!call.length||callAgeMin>offMin)){
+    flags.push({type:"offline",severity:"high",
+      msg:call.length?`No call-in for ${humanMins(callAgeMin)} (last ${fmt(call[call.length-1].t)})`:`No call-in in the ${CONFIG.WINDOW_DAYS}-day window`});
+  } else if(!lastAny||anyAgeMin>offMin){
+    flags.push({type:"offline",severity:"high",
+      msg:lastAny?`No data for ${humanMins(anyAgeMin)} (last ${fmt(lastAny)})`:`No data in the ${CONFIG.WINDOW_DAYS}-day window`});
+  }
+  let lastBatt=batt.length?batt[batt.length-1].v:null;
+  if(lastBatt!==null&&lastBatt<CONFIG.LOW_BATT_V) flags.push({type:"battery",severity:"med",msg:`Battery ${lastBatt.toFixed(2)}V (< ${CONFIG.LOW_BATT_V}V)`});
+  if(kind==="flow"&&level.length>=20){
+    const vals=level.map(p=>p.v).slice().sort((a,b)=>a-b); const q1=quantile(vals,0.25),q3=quantile(vals,0.75),iqr=q3-q1;
+    const hi=q3+CONFIG.IQR_MULT*iqr,lo=q1-CONFIG.IQR_MULT*iqr,latest=level[level.length-1].v;
+    if(latest>hi||latest<lo) flags.push({type:"range",severity:"med",msg:`Level ${latest.toFixed(2)}in outside normal ${lo.toFixed(2)}–${hi.toFixed(2)}in`});
+    let stuck=1; for(let i=level.length-1;i>0&&level[i].v===level[i-1].v;i--) stuck++;
+    if(stuck>=CONFIG.STUCK_N) flags.push({type:"range",severity:"med",msg:`Level flatlined at ${latest.toFixed(2)}in for ${stuck} readings`});
+  }
+  const lv=level.map(p=>p.v);
+  return { site,kind,hasCall,flags,healthy:flags.length===0, counts:{level:level.length,velocity:vel.length,call:call.length},
+    latest:{ level:level.length?level[level.length-1].v:null, velocity:vel.length?vel[vel.length-1].v:null, battery:lastBatt,
+      levelTime:level.length?level[level.length-1].t:null, callTime:call.length?call[call.length-1].t:null, activityTime:lastAny },
+    stats:lv.length?{min:Math.min(...lv),max:Math.max(...lv),avg:lv.reduce((a,b)=>a+b,0)/lv.length}:null,
+    callAgeMin, anyAgeMin };
+}
+function downsample(series,n=CONFIG.MAX_CHART_POINTS){ if(series.length<=n) return series; const bucket=Math.ceil(series.length/n),out=[];
+  for(let i=0;i<series.length;i+=bucket){ const s=series.slice(i,i+bucket); out.push({t:s[Math.floor(s.length/2)].t,v:s.reduce((a,p)=>a+p.v,0)/s.length}); } return out; }
+function orderSites(keys){ const num=k=>{const m=k.match(/(\d+)/);return m?+m[1]:0;};
+  const rg=keys.filter(k=>/^RG/i.test(k)).sort(); const site=keys.filter(k=>!/^RG/i.test(k)).sort((a,b)=>num(a)-num(b)||a.localeCompare(b));
+  return [...site,...rg]; }
+function analyseAll(text){
+  const parsed=parseCSV(text); const {sites,latestTs,cutoff,map}=buildSites(parsed); const keys=orderSites(Object.keys(sites));
+  const results=keys.map(k=>({ ...analyseSite(k,sites[k],latestTs,{hasLevel:!!(map[k]&&map[k].level),hasCall:!!(map[k]&&map[k].call)}),
+    series:{ level:downsample(sites[k].level), velocity:downsample(sites[k].velocity) } }));
+  return { latestTs,cutoff,windowDays:CONFIG.WINDOW_DAYS,totalRows:parsed.rows.length,sites:results,
+    summary:{ total:results.length, flagged:results.filter(r=>!r.healthy).length,
+      offline:results.filter(r=>r.flags.some(f=>f.type==="offline")).length,
+      lowBatt:results.filter(r=>r.flags.some(f=>f.type==="battery")).length,
+      range:results.filter(r=>r.flags.some(f=>f.type==="range")).length } };
+}
+
+/* ===== data fetch (static: reads ../data/<CODE>.csv from the repo) ===== */
+async function fetchCSV(){
+  try{
+    const res=await fetch("../data/"+PROJECT.code+".csv",{cache:"no-store"});
+    if(!res.ok) return null;
+    const text=await res.text();
+    if(text.indexOf("Time,")===-1) return null;
+    return text.slice(text.indexOf("Time,"));
+  }catch(e){ console.warn("fetch failed",e); return null; }
+}
+
+/* ===== rendering ===== */
+const $=s=>document.querySelector(s);
+function el(t,c,h){ const e=document.createElement(t); if(c) e.className=c; if(h!=null) e.innerHTML=h; return e; }
+function severityOf(r){ if(r.flags.some(f=>f.severity==="high")) return "bad"; if(r.flags.length) return "warn"; return "ok"; }
+function renderCards(R){ const c=$("#cards"); c.innerHTML="";
+  [ {n:R.summary.total,l:"Sites",cls:""},{n:R.summary.total-R.summary.flagged,l:"Healthy",cls:"ok"},
+    {n:R.summary.offline,l:"Offline (>48h)",cls:R.summary.offline?"bad":"ok"},
+    {n:R.summary.lowBatt,l:"Low battery",cls:R.summary.lowBatt?"warn":"ok"},
+    {n:R.summary.range,l:"Out of range",cls:R.summary.range?"warn":"ok"} ].forEach(it=>{ const s=el("div","stat "+it.cls);
+    s.appendChild(el("div","n",it.n)); s.appendChild(el("div","l",it.l)); c.appendChild(s); }); }
+function renderAttn(R){ const w=$("#attnwrap"); w.innerHTML=""; const flagged=R.sites.filter(r=>!r.healthy);
+  if(!flagged.length){ w.appendChild(el("div","attn warn","<h3>All sites reporting normally ✓</h3>")); return; }
+  w.appendChild(el("div","section-title","Needs attention"));
+  flagged.forEach(r=>{ const high=r.flags.some(f=>f.severity==="high"); const box=el("div","attn"+(high?"":" warn"));
+    box.appendChild(el("h3",null,`${r.site} <span class="chip ${severityOf(r)}">${high?"OFFLINE":"CHECK"}</span>`));
+    const ul=el("ul"); r.flags.forEach(f=>ul.appendChild(el("li",null,f.msg))); box.appendChild(ul); w.appendChild(box); }); }
+function renderGauges(R){ const g=$("#gauges"); g.innerHTML=""; const gauges=R.sites.filter(r=>r.kind==="gauge");
+  if(!gauges.length){ $("#gaugettl").style.display="none"; return; }
+  gauges.forEach(r=>{ const box=el("div","gauge"); const low=r.latest.battery!==null&&r.latest.battery<CONFIG.LOW_BATT_V;
+    box.appendChild(el("div","g-name",`${r.site} <span class="chip ${low?"warn":"ok"}">${low?"LOW":"OK"}</span>`));
+    box.appendChild(el("div","g-batt",(r.latest.battery!=null?r.latest.battery.toFixed(2)+"V":"—")));
+    box.appendChild(el("div","sub",r.flags.length?r.flags.map(f=>f.msg).join("; "):"reporting")); g.appendChild(box); }); }
+function renderSites(R){ const grid=$("#grid"); grid.innerHTML=""; const flow=R.sites.filter(r=>r.kind==="flow");
+  flow.forEach(r=>{ const card=el("div","site"); const sev=severityOf(r); const head=el("header");
+    head.appendChild(el("h3",null,r.site)); head.appendChild(el("span","chip "+sev, sev==="ok"?"Healthy":(sev==="bad"?"Offline":"Check"))); card.appendChild(head);
+    const m=el("div","metrics");
+    m.innerHTML=`<span>Level <b>${r.latest.level!=null?r.latest.level.toFixed(2)+" in":"—"}</b></span>`+
+                `<span>Velocity <b>${r.latest.velocity!=null?r.latest.velocity.toFixed(2)+" f/s":"—"}</b></span>`+
+                (r.stats?`<span>Range <b>${r.stats.min.toFixed(1)}–${r.stats.max.toFixed(1)}</b></span>`:"")+
+                (r.hasCall?`<span>Last call <b>${r.latest.callTime?fmt(r.latest.callTime):"—"}</b></span>`:`<span>Last data <b>${r.latest.activityTime?fmt(r.latest.activityTime):"—"}</b></span>`);
+    card.appendChild(m);
+    r.flags.forEach(f=>card.appendChild(el("div","flagline"+(f.severity==="high"?"":" warn"),"⚠ "+f.msg)));
+    const box=el("div","chartbox"); const cv=el("canvas"); box.appendChild(cv); card.appendChild(box); grid.appendChild(card); drawChart(cv,r); }); }
+function drawChart(canvas,r){
+  const lvl=r.series.level.map(p=>({x:p.t.getTime(),y:p.v})); const vel=r.series.velocity.map(p=>({x:p.t.getTime(),y:p.v}));
+  new Chart(canvas,{ type:"line", data:{ datasets:[
+      { label:"Level (in)", data:lvl, yAxisID:"yL", borderColor:"#2563eb", backgroundColor:"#2563eb", borderWidth:1.4, pointRadius:0, tension:.25 },
+      { label:"Velocity (f/s)", data:vel, yAxisID:"yV", borderColor:"#ea7317", backgroundColor:"#ea7317", borderWidth:1.4, pointRadius:0, tension:.25 } ]},
+    options:{ responsive:true, maintainAspectRatio:false, animation:false, interaction:{mode:"index",intersect:false},
+      scales:{ x:{ type:"linear", ticks:{ maxTicksLimit:5, font:{size:10}, color:"#98a2b3", callback:v=>{const d=new Date(v);return (d.getMonth()+1)+"/"+d.getDate();} }, grid:{display:false} },
+        yL:{ position:"left", title:{display:true,text:"in",font:{size:10},color:"#2563eb"}, ticks:{font:{size:10},color:"#98a2b3"}, grid:{color:"#f0f2f6"} },
+        yV:{ position:"right", title:{display:true,text:"f/s",font:{size:10},color:"#ea7317"}, ticks:{font:{size:10},color:"#98a2b3"}, grid:{display:false} } },
+      plugins:{ legend:{display:true,labels:{boxWidth:10,font:{size:10},usePointStyle:true}}, tooltip:{callbacks:{title:items=>fmt(new Date(items[0].parsed.x))}} } } });
+}
+function renderAwait(){
+  $("#status").style.display="none";
+  const app=$("#app"); app.style.display="block";
+  app.innerHTML=`<div class="await"><h2>Awaiting data export</h2>`+
+    `<div class="sub">No export found yet for <b>${PROJECT.name}</b> in the CSV Export folder.</div>`+
+    `<div class="meta"><span>DA <b>${PROJECT.da||"—"}</b></span><span>Meters <b>${PROJECT.meters??"—"}</b></span>`+
+    `<span>Rain gauges <b>${PROJECT.rg??"—"}</b></span><span>Cal cadence <b>${PROJECT.cadence||"—"}</b></span><span>Time zone <b>${PROJECT.tz||"—"}</b></span></div>`+
+    (PROJECT.note?`<div class="sub">${PROJECT.note}</div>`:"")+
+    `<div class="foot" style="margin-top:18px">This page will populate automatically once an export like <code>${PROJECT.name.split(" ")[0]}_CSV(…).csv</code> appears in the CSV Export folder. `+
+    `Offline = call-in silent &gt; 48 h or no data of any kind &gt; 48 h; low battery &lt; ${CONFIG.LOW_BATT_V}V.</div></div>`;
+}
+async function main(){
+  document.getElementById("title").textContent=`Site Health — ${PROJECT.name}`;
+  try{
+    const text=await fetchCSV();
+    if(text===null){ renderAwait(); return; }
+    const R=analyseAll(text); window.__R=R;
+    $("#subtitle").textContent=`${PROJECT.tz?PROJECT.tz+" · ":""}Data as of ${fmt(R.latestTs)} · trailing ${R.windowDays} days · ${R.totalRows.toLocaleString()} readings · ${R.summary.total} sites`;
+    renderCards(R); renderAttn(R); renderSites(R); renderGauges(R);
+    $("#foot").innerHTML=`Thresholds — offline: no Call Log check-in &gt; ${CONFIG.OFFLINE_HOURS} h, or no data of any kind &gt; ${CONFIG.OFFLINE_HOURS} h; `+
+      `low battery &lt; ${CONFIG.LOW_BATT_V}V; out-of-range: level beyond Q1/Q3 ± ${CONFIG.IQR_MULT}×IQR or flatlined. `+
+      `Source: <code>data/${PROJECT.code}.csv</code> in this repo.`;
+    $("#status").style.display="none"; $("#app").style.display="block";
+  }catch(e){ const s=$("#status"); s.className="err";
+    s.innerHTML="Couldn't build the report: "+(e&&e.message||e)+"<br><br>Check that the Google Drive connector is enabled.";
+    console.error(e); }
+}
+main();
+</script>
