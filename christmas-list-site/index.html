@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alonso's Christmas List</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+/* Layout: quiet catalog. Plain header, one toolbar, a 4-column product grid that steps down to 2 on phones. */
+:root {
+  --bg: #ffffff;
+  --ink: #161616;
+  --muted: #6f6f6c;
+  --line: #e6e6e3;
+  --tile: #f3f3f1;
+  --accent: #b3262e;
+  --pine: #1f5a42;
+  --t1: #f6e9e7;
+  --t2: #e7efe9;
+  --t3: #f4efe3;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Instrument Serif", Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121212; --ink: #ededeb; --muted: #9a9a96; --line: #2a2a29; --tile: #f3f3f1; --accent: #e8817f; --pine: #7fc4a2; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #121212; --ink: #ededeb; --muted: #9a9a96; --line: #2a2a29; --tile: #f3f3f1; --accent: #e8817f; --pine: #7fc4a2; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 400 14px/1.5 var(--font); }
+.wrap {
+  max-width: 1200px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 72px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+header h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(40px, 6vw, 60px); line-height: 1; letter-spacing: -0.01em; }
+header h1 em { color: var(--accent); }
+header p { margin: 10px 0 0; color: var(--muted); }
+.countdown { display: flex; align-items: baseline; gap: 8px; color: var(--muted); }
+.countdown strong { font-family: var(--display); font-weight: 400; font-size: 40px; line-height: 1; color: var(--pine); font-variant-numeric: tabular-nums; }
+
+/* Toolbar */
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-block: 12px; border-block: 1px solid var(--line); }
+.left { position: relative; display: flex; align-items: center; gap: 16px; }
+button, select { font: inherit; color: inherit; }
+.btn { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn[aria-expanded="true"] { border-color: var(--ink); }
+.btn .n { color: var(--muted); font-weight: 400; margin-left: 2px; }
+.count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.sort { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+select { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px; }
+
+.panel {
+  position: absolute; top: calc(100% + 13px); left: 0; z-index: 20;
+  width: min(340px, calc(100vw - 32px)); max-height: min(72vh, 620px); overflow: auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  box-shadow: 0 16px 32px -20px rgba(0,0,0,.35);
+}
+.panel fieldset { border: 0; margin: 0; padding: 16px; border-bottom: 1px solid var(--line); min-width: 0; }
+.panel legend { padding: 0; margin-bottom: 8px; font-weight: 600; }
+.checks label { display: flex; align-items: center; gap: 10px; padding: 4px 0; cursor: pointer; }
+.checks label span:first-of-type { flex: 1; }
+.checks .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+input[type="checkbox"] { width: 15px; height: 15px; margin: 0; accent-color: var(--ink); }
+.hist { display: flex; align-items: flex-end; gap: 2px; height: 56px; }
+.hist span { flex: 1; background: var(--line); }
+.hist span.on { background: var(--ink); }
+.range { position: relative; height: 20px; }
+.track { position: absolute; left: 8px; right: 8px; top: 50%; height: 2px; margin-top: -1px; background: var(--line); }
+.fill { position: absolute; top: 0; bottom: 0; background: var(--ink); }
+.range input { position: absolute; inset: 0; width: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; z-index: 2; }
+.range input::-webkit-slider-runnable-track { background: none; }
+.range input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--ink); cursor: grab; }
+.range input::-moz-range-thumb { pointer-events: auto; width: 13px; height: 13px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--ink); cursor: grab; }
+.range input::-moz-range-track { background: none; }
+.minmax { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); }
+.money { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
+.money input { width: 100%; min-width: 0; border: 0; background: none; font: inherit; color: var(--ink); font-variant-numeric: tabular-nums; }
+.money input:focus { outline: none; }
+.money:focus-within { border-color: var(--ink); }
+.panel-foot { position: sticky; bottom: 0; background: var(--bg); display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; }
+.link { background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.apply { background: var(--ink); color: var(--bg); border: 0; border-radius: 4px; padding: 8px 14px; cursor: pointer; font-weight: 500; }
+
+.active { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: -12px; }
+.pill { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+.pill:hover { border-color: var(--ink); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Grid */
+.grid { display: grid; gap: 40px 20px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.item { display: flex; flex-direction: column; gap: 12px; color: inherit; text-decoration: none; min-width: 0; }
+.photo { position: relative; aspect-ratio: 1 / 1; max-width: 100%; background: var(--tile); overflow: hidden; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: transform .35s ease; }
+.photo img.contain { object-fit: contain; padding: 10%; mix-blend-mode: multiply; }
+.photo img.cover { object-fit: cover; }
+.nophoto { position: absolute; inset: 0; display: grid; place-items: center; padding: 12%; text-align: center; font-family: var(--display); font-style: italic; font-size: 28px; line-height: 1.1; color: #161616; }
+.item:hover .photo img { transform: scale(1.04) rotate(-1.5deg); }
+.info { display: flex; flex-direction: column; gap: 2px; }
+.brand { color: var(--muted); font-size: 12px; }
+.name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item:hover .name { text-decoration: underline; text-underline-offset: 3px; }
+.price { font-family: var(--display); font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; margin-top: 4px; display: flex; align-items: baseline; gap: 8px; }
+.price .sale { color: var(--accent); }
+.price s { color: var(--muted); font-size: 17px; text-decoration-thickness: 1px; }
+.meta { color: var(--muted); font-size: 13px; }
+.meta.note { color: var(--accent); }
+.empty { color: var(--muted); padding: 32px 0; }
+footer { color: var(--muted); font-size: 12px; }
+:is(.btn, select, .item, .pill, .link, .apply, .range input):focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 620px) {
+  .wrap { padding-block: 28px 48px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 12px; }
+  .count { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .photo img { transition: none; } .item:hover .photo img { transform: none; } }
+</style>
+<style>html,body{margin:0} img{max-width:100%} [hidden]{display:none!important}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Alonso's <em>Christmas</em> List</h1>
+      <p>Tap any item to open it in the store.</p>
+    </div>
+    <div class="countdown" id="countdown" hidden><strong id="days"></strong><span id="daysLabel">days to Christmas</span></div>
+  </header>
+
+  <div class="toolbar">
+    <div class="left">
+      <button class="btn" id="filterBtn" type="button" aria-expanded="false" aria-controls="filterPanel">Filter<span class="n" id="fCount" hidden></span></button>
+      <span class="count" id="resultCount"></span>
+      <div class="panel" id="filterPanel" role="dialog" aria-label="Filter" hidden>
+        <fieldset><legend>Category</legend><div class="checks" id="catList"></div></fieldset>
+        <fieldset>
+          <legend>Price</legend>
+          <div class="hist" id="hist" aria-hidden="true"></div>
+          <div class="range">
+            <div class="track"><div class="fill" id="fill"></div></div>
+            <input type="range" id="pMin" min="0" max="400" step="5" value="0" aria-label="Minimum price">
+            <input type="range" id="pMax" min="0" max="400" step="5" value="400" aria-label="Maximum price">
+          </div>
+          <div class="minmax">
+            <label class="money" for="pMinNum">$<input type="number" id="pMinNum" min="0" max="400" step="5" inputmode="numeric" aria-label="Minimum price"></label>
+            <span>to</span>
+            <label class="money" for="pMaxNum">$<input type="number" id="pMaxNum" min="0" max="400" step="5" inputmode="numeric" aria-label="Maximum price"></label>
+          </div>
+        </fieldset>
+        <div class="panel-foot">
+          <button class="link" id="clearBtn" type="button">Clear</button>
+          <button class="apply" id="applyBtn" type="button">Show</button>
+        </div>
+      </div>
+    </div>
+    <label class="sort" for="sortBy">Sort
+      <select id="sortBy">
+        <option value="list">Default</option>
+        <option value="low">Price: low to high</option>
+        <option value="high">Price: high to low</option>
+        <option value="name">Name: A to Z</option>
+      </select>
+    </label>
+  </div>
+  <div class="active" id="active" hidden></div>
+
+  <main class="grid" id="grid" aria-live="polite"></main>
+  <p class="empty" id="empty" hidden>No items match these filters.</p>
+  <footer>Prices may have changed since this list was made. Thank you!</footer>
+</div>
+
+<script>
+const SIZES = { shoes: "Size US 8.5 / EU 41", shirt: "Size 15½ neck, 33 sleeve", jacket: "Size M", jeans: "Size 33", large: "Size L", belt: "Size S", adidas: "Size US M 7.5" };
+const ITEMS = [
+  { name: "LX48 Eau de Parfum", store: "Caswell-Massey", cat: "Fragrance", price: 200, img: "caswell2", fit: "cover",
+    url: "https://www.caswellmassey.com/products/perfect-pairings-full-size-fragrance-bar-soap", tip: "Gift bundles are cheaper. The one linked is $172.80." },
+  { name: "El Dorado, 100ml", store: "Scout Dixon West", cat: "Fragrance", price: 175, img: "scout", fit: "contain",
+    url: "https://www.scoutdixonwest.com/products/el-dorado-100ml" },
+  { name: "Padded Work Coat", store: "Engineered Garments × GU", cat: "Clothing", price: 129, img: "gu", fit: "cover",
+    url: "https://www.gu-global.com/us/en/products/E360551-000/00", size: "jacket" },
+  { name: "C1 Turbo Team Vacuum", store: "Miele", cat: "Home", price: 400, img: "miele", fit: "contain",
+    url: "https://a.co/d/04ZwSJKW" },
+  { name: "M0 Pura MP3 Player", store: "Shanling", cat: "Electronics", price: 129, img: "shanling", fit: "contain",
+    url: "https://a.co/d/05r4UWqj" },
+  { name: "Electric Tongue Brush", store: "Amazon", cat: "Personal Care", price: 25, img: "tongue", fit: "contain",
+    url: "https://a.co/d/07Lv7Ujy" },
+  { name: "Electric Toothbrush", store: "Philips", cat: "Personal Care", price: 40, img: "sonicare", fit: "contain",
+    url: "https://a.co/d/0gXJXyMT" },
+  { name: "Padror Derby Shoes", store: "Kleman", cat: "Shoes", price: 160, img: "kleman", fit: "cover",
+    url: "https://kleman-france.com/en/products/padror-noir", size: "shoes" },
+  { name: "Punched Metal Trays", store: "West Elm", cat: "Home", price: 39, img: "westelm", fit: "cover",
+    url: "https://www.westelm.com/products/punched-metal-trays-1958/", tip: "Any metal valet tray works." },
+  { name: "C202 7 Running Shoes", store: "ANTA", cat: "Shoes", price: 78, img: "anta", fit: "cover",
+    url: "https://anta.com/products/mens-anta-c202-7", size: "shoes" },
+  { name: "Endorphin Speed 5", store: "Saucony", cat: "Shoes", price: 130, img: "saucony", fit: "contain",
+    url: "https://www.saucony.com/en/endorphin-speed-5/195021983477.html", size: "shoes" },
+  { name: "Camel Hair Overcoat", store: "Quince", cat: "Clothing", price: 350, img: "quince", fit: "cover",
+    url: "https://www.quince.com/men/mens-luxe-camel-hair-double-breasted-peacoat?color=heather-graphite-grey", size: "jacket" },
+  { name: "Pulse Tandem Watch", store: "Breda", cat: "Accessories", price: 230, img: "breda", fit: "contain",
+    url: "https://www.breda.com/products/breda-pulse-tandem-1747b-silver-metal-bracelet-watch" },
+  { name: "Berkeley Penny Loafer", store: "G.H. Bass", cat: "Shoes", price: 150, img: "bass", fit: "cover",
+    url: "https://www.ghbass.com/products/men-berkeley-penny-loafer-open-black?variant=52628714717552", size: "shoes" },
+  { name: "Snap Tab Dress Shirt", store: "Paul Fredrick", cat: "Clothing", price: 95, img: "shirt", fit: "contain",
+    url: "https://www.paulfredrick.com/products/non-iron-cotton-pinpoint-solid-snap-tab-collar-dress-shirt-1507nip-white", size: "shirt" },
+  { name: "Mitri Valet Tray", store: "CB2", cat: "Home", price: 71, img: "cb2", fit: "cover",
+    url: "https://www.cb2.com/mitri-stainless-steel-and-brown-leather-decorative-tray/s684426", tip: "Any metal valet tray works." },
+  { name: "Woods Soy Candle", store: "Sydney Hale Co.", cat: "Home", price: 34, img: "sydney", fit: "cover",
+    url: "https://sydneyhaleco.com/products/woods" },
+  { name: "KeyStep 37 mk2", store: "Arturia", cat: "Electronics", price: 229, img: "keystep", fit: "contain",
+    url: "https://www.arturia.com/store/keystep-37-mk2", tip: "Other models might be a little cheaper." },
+  { name: "Palo Santo Chimney", store: "Amazon", cat: "Home", price: 20, img: "palosanto", fit: "cover",
+    url: "https://www.amazon.com/dp/B0H2HCR3GG" },
+  { name: "C17 Cambium Saddle", store: "Brooks", cat: "Cycling", price: 155, img: "brooks", fit: "cover",
+    url: "https://www.brooksengland.com/en-us/products/saddles-cambium-c17-black-c170000066300" },
+  { name: "U Space Laptop Bag", store: "Ujual", cat: "Accessories", price: 149, img: "ujual", fit: "cover",
+    url: "https://ujual.com/store/product/u-space-1?variant=ebony-black" },
+  { name: "Mohair Beanie", store: "Hiking Patrol", cat: "Accessories", price: 65, img: "beanie", fit: "cover",
+    url: "https://hikingpatrol.com/products/exploration-mohair-mixed-beanie-3?variant=41338944356416" },
+  { name: "Strong Guy Jean", store: "Naked & Famous", cat: "Clothing", price: 188, img: "nf", fit: "contain", size: "jeans",
+    url: "https://nakedandfamousdenim.com/products/strong-guy-loosey-goosey-selvedge-indigo?variant=53273861554541" },
+  { name: "Snapic A1 Film Camera", store: "Kodak", cat: "Electronics", price: 99, img: "kodak", fit: "contain",
+    url: "https://www.target.com/p/kodak-snapic-a1-35mm-film-camera-rhino-gray/-/A-1009953899" },
+  { name: "Watch 3 Pro", store: "CMF by Nothing", cat: "Electronics", price: 79, img: "cmfwatch", fit: "contain",
+    url: "https://us.nothing.tech/products/cmf-watch-3-pro", tip: "Any color works." },
+  { name: "Evergreen Affections Kit", store: "Aesop", cat: "Personal Care", price: 145, img: "aesop", fit: "cover",
+    url: "https://www.aesop.com/gifts/seasonal-gift-kits/evergreen-affections/APB419.html" },
+  { name: "Moab 3 Mid GORE-TEX", store: "Merrell", cat: "Shoes", price: 195, img: "merrell", fit: "contain", size: "shoes",
+    url: "https://www.merrell.com/US/en/moab-3-mid-gore-tex/52469M.html" },
+  { name: "Molecule 01, 3.5oz", store: "Escentric Molecules", cat: "Fragrance", price: 144.5, was: 170, img: "molecule", fit: "contain",
+    url: "https://www.nordstrom.com/s/escentric-molecules-molecule-01-eau-de-toilette/8155775" },
+  { name: "Cactus Leather Key Organizer", store: "Orbitkey", cat: "Accessories", price: 23.94, was: 39.9, img: "orbitkey", fit: "cover",
+    url: "https://www.orbitkey.com/products/cactus-leather-key-organiser" },
+  { name: "Busy World 35mm Film", store: "MoMA Design Store", cat: "Electronics", price: 22, img: "busyfilm", fit: "contain",
+    url: "https://store.moma.org/products/richard-scarrys-busy-world-pre-exposed-35mm-color-film" },
+  { name: "Microwave Popcorn Popper", store: "W&P", cat: "Home", price: 25, img: "popcorn", fit: "contain",
+    url: "https://www.worldmarket.com/p/wandp-silicone-microwave-popcorn-popper-594700.html" },
+  { name: "The No Wave Sunglasses", store: "Crap Eyewear", cat: "Accessories", price: 99, img: "crap", fit: "contain",
+    url: "https://www.crapeyewear.com/products/the-no-wave-black-licorice-bioacetate-sunglasses" },
+  { name: "BW Army Shoes", store: "adidas", cat: "Shoes", price: 120, img: "adidas", fit: "contain", size: "shoes",
+    url: "https://www.adidas.com/us/bw-army-shoes/KK2801.html?forceSelSize=M+8.5+%2F+W+9.5" },
+  { name: "Inner World Nalgene, 32oz", store: "Brain Dead", cat: "Accessories", price: 35, img: "nalgene", fit: "contain",
+    url: "https://wearebraindead.com/products/brain-dead-equipment-inner-world-research-nalgene-blue?variant=46576313761923" },
+  { name: "Clothes Folding Board", store: "BoxLegend", cat: "Home", price: 17, img: "foldboard", fit: "contain",
+    url: "https://www.amazon.com/dp/B077XV9VZG?th=1" },
+  { name: "BigZag Nalgene Bottle Cage", store: "Portland Design Works", cat: "Cycling", price: 32, img: "bigzag", fit: "cover",
+    url: "https://www.backcountry.com/b/portland-design-works-bigzag-stainless-nalgene-bottle-cage" },
+  { name: "Purist 22oz Bottle", store: "Specialized", cat: "Cycling", price: 13, img: "purist", fit: "contain",
+    url: "https://www.chenangopoint.com/accessories/bottles-cages/specialized-purist-omni-22-oz-bottle-in-fingerprint-black__10879?currency=USD&chosenAttribute=44226-2220" },
+  { name: "Glen Jean", store: "Arran Studios", cat: "Clothing", price: 170, was: 220, img: "glenjean", fit: "cover", size: "jeans",
+    url: "https://arran-studios.com/collections/fw2026", tip: "Releases Nov 20." },
+  { name: "Pit Crew Sweater", store: "Arran Studios", cat: "Clothing", price: 120, was: 175, img: "pitcrew", fit: "cover", size: "jacket",
+    url: "https://arran-studios.com/products/pit-crew-sweater", tip: "Restocks Nov 20." },
+  { name: "Mesh Duffel Bag", store: "Anna-Kaci", cat: "Accessories", price: 31.99, was: 36, img: "meshduffel", fit: "contain",
+    url: "https://www.target.com/p/alilang-mesh-duffel-bag-with-top-handles-adjustable-shoulder-strap-lightweight-gym-travel-weekender-tote/-/A-1012397901?preselect=1012397900" },
+  { name: "Electric Pro Dot Pen", store: "Inlumino Heart Ink", cat: "Electronics", price: 149.99, img: "dotpen", fit: "contain",
+    url: "https://inluminoheartink.com/product/electric-dot-pen" },
+  { name: "Vintage Andrew Pleated Chinos", store: "Polo Ralph Lauren · eBay", cat: "Clothing", price: 34, img: "ebaypants", fit: "cover",
+    url: "https://www.ebay.com/itm/820340043384", tip: "One-of-a-kind listing, size 34x28. Plus $10.43 shipping." },
+  { name: "Suede D-Ring Belt", store: "Madewell", cat: "Accessories", price: 58.5, was: 98, img: "madewellbelt", fit: "cover", size: "belt",
+    url: "https://www.madewell.com/p/mens/accessories/belts/suede-d-ring-belt/OB675/?ccode=EE8000" },
+  { name: "Charter GORE-TEX Jacket", store: "Grundéns", cat: "Clothing", price: 74.99, was: 299.99, img: "grundens", fit: "contain", size: "jacket",
+    url: "https://www.selectfishinggear.com/product/grundens-charter-gore-tex-paclite-jacket-anchor-m/", tip: "Might sell out." },
+  { name: "Aluminum Storage Clipboard", store: "Saunders", cat: "Accessories", price: 29.98, img: "clipboard", fit: "contain",
+    url: "https://www.homedepot.com/p/Saunders-Aluminum-Storage-Clipboard-66387/205386841" },
+  { name: "Reversible Amphibian Beanie", store: "CCS", cat: "Accessories", price: 19.95, img: "ccsbeanie", fit: "cover",
+    url: "https://shop.ccs.com/collections/ccs-beanies/products/ccs-reversible-amphibian-skully-beanie-green-brown?variant=47155532398775" },
+  { name: "Roller & Gua Sha Set", store: "BAIMEI", cat: "Personal Care", price: 16, img: "baimei", fit: "contain",
+    url: "https://a.co/d/0dcPa0dL" },
+  { name: "Volano Denim Jacket", store: "Wrangler × ROA", cat: "Clothing", price: 370, img: "wranglerroa", fit: "cover", size: "large",
+    url: "https://www.wrangler.com/shop/wrangler-x-roa-volano-denim-jacket-in-dark-owl-camo-112391364.html" }
+].map((it, i) => ({ ...it, order: i }));
+// Shuffle once per visit so no item always sits at the top.
+for (let i = ITEMS.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ITEMS[i], ITEMS[j]] = [ITEMS[j], ITEMS[i]]; }
+
+const CATS = [...new Set(ITEMS.map(i => i.cat))].sort();
+const PMAX = 400, BIN = 20, NBINS = PMAX / BIN;
+const state = { cats: new Set(), min: 0, max: PMAX, sort: "list" };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inCats = i => !state.cats.size || state.cats.has(i.cat);
+const inPrice = i => i.price == null ? !rangeSet() : i.price >= state.min && i.price <= state.max;
+const money = p => "$" + (Number.isInteger(p) ? p : p.toFixed(2));
+const rangeSet = () => state.min > 0 || state.max < PMAX;
+
+function renderFilters() {
+  $("catList").innerHTML = CATS.map(c => `<label><input type="checkbox" data-cat="${esc(c)}" ${state.cats.has(c) ? "checked" : ""}><span>${esc(c)}</span><span class="n" data-count="${esc(c)}"></span></label>`).join("");
+  renderPrice();
+}
+function renderPrice() {
+  document.querySelectorAll("#catList [data-count]").forEach(el => {
+    el.textContent = ITEMS.filter(i => i.cat === el.dataset.count && inPrice(i)).length;
+  });
+  const pool = ITEMS.filter(i => inCats(i) && i.price != null);
+  const bins = Array.from({ length: NBINS }, (_, b) => pool.filter(i => Math.min(Math.floor(i.price / BIN), NBINS - 1) === b).length);
+  const top = Math.max(1, ...bins);
+  $("hist").innerHTML = bins.map((n, b) => {
+    const lo = b * BIN, hi = lo + BIN, on = lo <= state.max && hi > state.min;
+    return `<span class="${on ? "on" : ""}" style="height:${n ? 12 + 88 * n / top : 3}%" title="$${lo}–$${hi}: ${n}"></span>`;
+  }).join("");
+  $("pMin").value = state.min; $("pMax").value = state.max;
+  $("pMinNum").value = state.min; $("pMaxNum").value = state.max;
+  $("fill").style.left = (state.min / PMAX * 100) + "%";
+  $("fill").style.right = (100 - state.max / PMAX * 100) + "%";
+  $("pMin").style.zIndex = state.min > PMAX - 25 ? 3 : 2;
+}
+function renderActive() {
+  const pills = [];
+  state.cats.forEach(c => pills.push(["cat", c, c]));
+  if (rangeSet()) pills.push(["price", "", `$${state.min}–$${state.max}`]);
+  $("active").innerHTML = pills.map(([k, v, t]) => `<button type="button" class="pill" data-k="${k}" data-v="${esc(v)}">${esc(t)} ×<span class="sr"> remove</span></button>`).join("")
+    + (pills.length ? `<button type="button" class="link" data-k="all">Clear</button>` : "");
+  $("active").hidden = !pills.length;
+  const n = state.cats.size + (rangeSet() ? 1 : 0);
+  $("fCount").textContent = ` (${n})`; $("fCount").hidden = !n;
+}
+function render() {
+  let list = ITEMS.filter(i => inCats(i) && inPrice(i));
+  if (state.sort === "low") list = [...list].sort((a, b) => (a.price ?? 1e9) - (b.price ?? 1e9));
+  if (state.sort === "high") list = [...list].sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
+  if (state.sort === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+  $("grid").innerHTML = list.map(i => `
+    <a class="item" href="${esc(i.url)}" target="_blank" rel="noopener">
+      <div class="photo">${i.img ? `<img class="${i.fit}" src="photos/${i.img}.jpg" alt="" loading="lazy" width="720" height="720">` : `<span class="nophoto">${esc(i.store)}</span>`}</div>
+      <div class="info">
+        <span class="brand">${esc(i.store)}</span>
+        <span class="name">${esc(i.name)}</span>
+        ${i.price != null ? (i.was ? `<span class="price"><span class="sale">${money(i.price)}</span><s>${money(i.was)}</s></span>` : `<span class="price">${money(i.price)}</span>`) : `<span class="meta">Price on Amazon</span>`}
+        ${i.size ? `<span class="meta">${esc(SIZES[i.size])}</span>` : ""}
+        ${i.tip ? `<span class="meta note">${esc(i.tip)}</span>` : ""}
+      </div>
+    </a>`).join("");
+  $("empty").hidden = list.length > 0;
+  $("resultCount").textContent = `${list.length} items`;
+  $("applyBtn").textContent = `Show ${list.length}`;
+  renderActive();
+}
+
+const panel = $("filterPanel"), fBtn = $("filterBtn");
+const openPanel = o => { panel.hidden = !o; fBtn.setAttribute("aria-expanded", String(o)); };
+fBtn.addEventListener("click", () => openPanel(panel.hidden));
+$("applyBtn").addEventListener("click", () => openPanel(false));
+document.addEventListener("click", e => {
+  if (!panel.hidden && e.target.isConnected && !panel.contains(e.target) && !fBtn.contains(e.target)) openPanel(false);
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !panel.hidden) { openPanel(false); fBtn.focus(); } });
+
+const clamp = v => Math.max(0, Math.min(PMAX, Math.round(v / 5) * 5));
+panel.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.cat) {
+    t.checked ? state.cats.add(t.dataset.cat) : state.cats.delete(t.dataset.cat);
+    renderPrice();
+  } else if (t.id === "pMinNum" || t.id === "pMaxNum") {
+    let a = clamp(+$("pMinNum").value || 0), b = $("pMaxNum").value === "" ? PMAX : clamp(+$("pMaxNum").value);
+    if (a > b) [a, b] = [b, a];
+    state.min = a; state.max = b; renderPrice();
+  }
+  render();
+});
+$("pMin").addEventListener("input", e => { state.min = Math.min(+e.target.value, state.max); renderPrice(); render(); });
+$("pMax").addEventListener("input", e => { state.max = Math.max(+e.target.value, state.min); renderPrice(); render(); });
+
+function clearAll() { state.cats.clear(); state.min = 0; state.max = PMAX; renderFilters(); render(); }
+$("clearBtn").addEventListener("click", clearAll);
+$("active").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const { k, v } = b.dataset;
+  if (k === "all") return clearAll();
+  if (k === "cat") state.cats.delete(v);
+  if (k === "price") { state.min = 0; state.max = PMAX; }
+  renderFilters(); render();
+});
+$("sortBy").addEventListener("change", e => { state.sort = e.target.value; render(); });
+
+renderFilters(); render();
+
+(function () {
+  const now = new Date(), y = now.getMonth() === 11 && now.getDate() > 25 ? now.getFullYear() + 1 : now.getFullYear();
+  const days = Math.ceil((new Date(y, 11, 25) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+  if (days === 0) { $("days").textContent = "Merry Christmas!"; $("daysLabel").hidden = true; }
+  else { $("days").textContent = days; $("daysLabel").textContent = days === 1 ? "day to Christmas" : "days to Christmas"; }
+  $("countdown").hidden = false;
+})();
+</script>
+</body>
+</html>
