@@ -255,8 +255,6 @@ const ITEMS = [
     url: "https://www.chenangopoint.com/accessories/bottles-cages/specialized-purist-omni-22-oz-bottle-in-fingerprint-black__10879?currency=USD&chosenAttribute=44226-2220" },
   { name: "Glen Jean", store: "Arran Studios", cat: "Clothing", price: 170, was: 220, img: "glenjean", fit: "cover", size: "jeans",
     url: "https://arran-studios.com/collections/fw2026", tip: "Releases Nov 20." },
-  { name: "Pit Crew Sweater", store: "Arran Studios", cat: "Clothing", price: 120, was: 175, img: "pitcrew", fit: "cover", size: "jacket",
-    url: "https://arran-studios.com/products/pit-crew-sweater", tip: "Restocks Nov 20." },
   { name: "Mesh Duffel Bag", store: "Anna-Kaci", cat: "Accessories", price: 31.99, was: 36, img: "meshduffel", fit: "contain",
     url: "https://www.target.com/p/alilang-mesh-duffel-bag-with-top-handles-adjustable-shoulder-strap-lightweight-gym-travel-weekender-tote/-/A-1012397901?preselect=1012397900" },
   { name: "Electric Pro Dot Pen", store: "Inlumino Heart Ink", cat: "Electronics", price: 149.99, img: "dotpen", fit: "contain",
@@ -274,7 +272,9 @@ const ITEMS = [
   { name: "Roller & Gua Sha Set", store: "BAIMEI", cat: "Personal Care", price: 16, img: "baimei", fit: "contain",
     url: "https://a.co/d/0dcPa0dL" },
   { name: "Volano Denim Jacket", store: "Wrangler × ROA", cat: "Clothing", price: 370, img: "wranglerroa", fit: "cover", size: "large",
-    url: "https://www.wrangler.com/shop/wrangler-x-roa-volano-denim-jacket-in-dark-owl-camo-112391364.html" }
+    url: "https://www.wrangler.com/shop/wrangler-x-roa-volano-denim-jacket-in-dark-owl-camo-112391364.html" },
+  { name: "Portable FM Synthesizer", store: "Amazon", cat: "Electronics", price: null, img: "synth", fit: "contain",
+    url: "https://www.amazon.com/dp/B0H5VCT7XK?th=1" }
 ].map((it, i) => ({ ...it, order: i }));
 // Shuffle once per visit so no item always sits at the top.
 for (let i = ITEMS.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ITEMS[i], ITEMS[j]] = [ITEMS[j], ITEMS[i]]; }
